@@ -62,6 +62,12 @@ export const Level3: React.FC = () => {
       </RigidBody>
 
       {/* 6. SECTION 5: WIND FAN BLOWER ZONES */}
+      <RigidBody type="fixed" colliders="cuboid" friction={0.5}>
+        <mesh receiveShadow position={[0, -0.4, 100]}>
+          <boxGeometry args={[4.2, 0.8, 10]} />
+          <meshStandardMaterial color={config.groundColor} roughness={0.6} />
+        </mesh>
+      </RigidBody>
       {/* Blows from left to right */}
       <WindFanZone position={[0, 0, 100]} size={[4.2, 2.0, 10]} force={[2.8, 0, 0]} />
 
@@ -81,21 +87,21 @@ export const Level3: React.FC = () => {
 
       {/* 8. FINISH LINE PLATFORM */}
       <RigidBody type="fixed" colliders="cuboid">
-        <mesh receiveShadow position={[0, -0.4, 140]}>
+        <mesh receiveShadow position={[0, -0.4, 134]}>
           <boxGeometry args={[6, 0.8, 6]} />
           <meshStandardMaterial color={config.groundColor} roughness={0.5} />
         </mesh>
 
         {/* Pillars */}
-        <mesh castShadow position={[-2.2, 1.5, 140]}>
+        <mesh castShadow position={[-2.2, 1.5, 134]}>
           <cylinderGeometry args={[0.15, 0.15, 3.0, 12]} />
           <meshStandardMaterial color={config.obstacleColor2} />
         </mesh>
-        <mesh castShadow position={[2.2, 1.5, 140]}>
+        <mesh castShadow position={[2.2, 1.5, 134]}>
           <cylinderGeometry args={[0.15, 0.15, 3.0, 12]} />
           <meshStandardMaterial color={config.obstacleColor2} />
         </mesh>
-        <mesh castShadow position={[0, 3.0, 140]}>
+        <mesh castShadow position={[0, 3.0, 134]}>
           <boxGeometry args={[4.8, 0.3, 0.4]} />
           <meshStandardMaterial color={config.obstacleColor1} />
         </mesh>
@@ -107,7 +113,7 @@ export const Level3: React.FC = () => {
           args={[2.5, 1.5, 0.15]} 
           sensor 
           onIntersectionEnter={handleFinish} 
-          position={[0, 1.0, 140]} 
+          position={[0, 1.0, 134]} 
         />
       </RigidBody>
     </group>

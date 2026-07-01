@@ -25,8 +25,8 @@ export const Level4: React.FC = () => {
         </mesh>
       </RigidBody>
 
-      {/* 2. SECTION 1: COLLAPSING PLATFORMS DECK */}
-      <group position={[0, -0.4, 18]}>
+      {/* 2. SECTION 1: COLLAPSING PLATFORMS DECK (Shifted to z = 10) */}
+      <group position={[0, -0.4, 10]}>
         {/* Render a grid of collapsing tiles */}
         <CollapsingTile position={[-1.6, 0, -4]} size={[1.4, 0.8, 3.5]} color={config.obstacleColor1} />
         <CollapsingTile position={[0, 0, -4]} size={[1.4, 0.8, 3.5]} color={config.obstacleColor2} />
@@ -40,54 +40,54 @@ export const Level4: React.FC = () => {
         <CollapsingTile position={[1.6, 0, 7]} size={[1.4, 0.8, 3.5]} color={config.obstacleColor1} />
       </group>
 
-      {/* 3. SECTION 2: CHECKPOINT 1 */}
+      {/* 3. SECTION 2: CHECKPOINT 1 (Shifted to z = 26) */}
       <RigidBody type="fixed" colliders="cuboid">
-        <mesh receiveShadow position={[0, -0.4, 34]}>
+        <mesh receiveShadow position={[0, -0.4, 26]}>
           <boxGeometry args={[5, 0.8, 5]} />
           <meshStandardMaterial color={config.groundColor} roughness={0.6} />
         </mesh>
       </RigidBody>
-      <Checkpoint position={[0, 0, 34]} id={1} />
+      <Checkpoint position={[0, 0, 26]} id={1} />
 
       {/* 4. SECTION 3: PRECISION FLOATING JUMPS */}
       <RigidBody type="fixed" colliders="cuboid">
-        <mesh receiveShadow position={[-1.6, -0.4, 44]}>
+        <mesh receiveShadow position={[-1.6, -0.4, 35]}>
           <boxGeometry args={[1.2, 0.8, 1.2]} />
           <meshStandardMaterial color={config.groundColor} />
         </mesh>
-        <mesh receiveShadow position={[1.6, -0.4, 52]}>
+        <mesh receiveShadow position={[1.6, -0.4, 42]}>
           <boxGeometry args={[1.2, 0.8, 1.2]} />
           <meshStandardMaterial color={config.groundColor} />
         </mesh>
-        <mesh receiveShadow position={[0, -0.4, 60]}>
+        <mesh receiveShadow position={[0, -0.4, 49]}>
           <boxGeometry args={[1.5, 0.8, 1.5]} />
           <meshStandardMaterial color={config.groundColor} />
         </mesh>
       </RigidBody>
 
       {/* 5. SECTION 4: MUD SLIDE TO SPEED PAD GAP */}
-      <MudPlatform position={[0, -0.4, 76]} size={[4, 0.8, 14]} color="#301b0c" />
-      <SpeedPad position={[0, 0.01, 85]} />
+      <MudPlatform position={[0, -0.4, 62]} size={[4, 0.8, 14]} color="#301b0c" />
+      <SpeedPad position={[0, 0.01, 71]} />
       
       {/* Target landing across void */}
       <RigidBody type="fixed" colliders="cuboid">
-        <mesh receiveShadow position={[0, -0.4, 100]}>
+        <mesh receiveShadow position={[0, -0.4, 86]}>
           <boxGeometry args={[5, 0.8, 10]} />
           <meshStandardMaterial color={config.groundColor} />
         </mesh>
       </RigidBody>
 
       {/* 6. SECTION 5: CHECKPOINT 2 */}
-      <Checkpoint position={[0, 0, 102]} id={2} />
+      <Checkpoint position={[0, 0, 88]} id={2} />
 
       {/* 7. SECTION 6: WIND-BLOWN ICE SLIDES */}
-      <IcePlatform position={[0, -0.4, 126]} size={[4, 0.8, 30]} color="#b5f2ff" />
-      <WindFanZone position={[-0.8, 0, 118]} size={[3.6, 2.0, 8]} force={[2.6, 0, 0]} />
-      <WindFanZone position={[0.8, 0, 134]} size={[3.6, 2.0, 8]} force={[-2.6, 0, 0]} />
+      <IcePlatform position={[0, -0.4, 110]} size={[4, 0.8, 30]} color="#b5f2ff" />
+      <WindFanZone position={[-0.8, 0, 102]} size={[3.6, 2.0, 8]} force={[2.6, 0, 0]} />
+      <WindFanZone position={[0.8, 0, 118]} size={[3.6, 2.0, 8]} force={[-2.6, 0, 0]} />
 
       {/* Intermediate rest island */}
       <RigidBody type="fixed" colliders="cuboid">
-        <mesh receiveShadow position={[0, -0.4, 145]}>
+        <mesh receiveShadow position={[0, -0.4, 131]}>
           <boxGeometry args={[4.5, 0.8, 6]} />
           <meshStandardMaterial color={config.groundColor} />
         </mesh>
@@ -95,32 +95,32 @@ export const Level4: React.FC = () => {
 
       {/* 8. SECTION 7: FINAL PENDULUM SPRINT */}
       <RigidBody type="fixed" colliders="cuboid">
-        <mesh receiveShadow position={[0, -0.4, 166]}>
+        <mesh receiveShadow position={[0, -0.4, 152]}>
           <boxGeometry args={[2.5, 0.8, 30]} />
           <meshStandardMaterial color={config.groundColor} roughness={0.6} />
         </mesh>
       </RigidBody>
 
-      <PendulumHammer position={[0, 3.2, 156]} length={2.5} speed={3.8} color={config.obstacleColor1} />
-      <PendulumHammer position={[0, 3.2, 168]} length={2.5} speed={-3.6} color={config.obstacleColor2} />
+      <PendulumHammer position={[0, 3.2, 142]} length={2.5} speed={3.8} color={config.obstacleColor1} />
+      <PendulumHammer position={[0, 3.2, 154]} length={2.5} speed={-3.6} color={config.obstacleColor2} />
 
       {/* 9. FINISH LINE PLATFORM */}
       <RigidBody type="fixed" colliders="cuboid">
-        <mesh receiveShadow position={[0, -0.4, 185]}>
+        <mesh receiveShadow position={[0, -0.4, 171]}>
           <boxGeometry args={[6, 0.8, 6]} />
           <meshStandardMaterial color={config.groundColor} roughness={0.5} />
         </mesh>
 
         {/* Pillars */}
-        <mesh castShadow position={[-2.2, 1.5, 185]}>
+        <mesh castShadow position={[-2.2, 1.5, 171]}>
           <cylinderGeometry args={[0.15, 0.15, 3.0, 12]} />
           <meshStandardMaterial color={config.obstacleColor2} />
         </mesh>
-        <mesh castShadow position={[2.2, 1.5, 185]}>
+        <mesh castShadow position={[2.2, 1.5, 171]}>
           <cylinderGeometry args={[0.15, 0.15, 3.0, 12]} />
           <meshStandardMaterial color={config.obstacleColor2} />
         </mesh>
-        <mesh castShadow position={[0, 3.0, 185]}>
+        <mesh castShadow position={[0, 3.0, 171]}>
           <boxGeometry args={[4.8, 0.3, 0.4]} />
           <meshStandardMaterial color={config.obstacleColor1} />
         </mesh>
@@ -132,7 +132,7 @@ export const Level4: React.FC = () => {
           args={[2.5, 1.5, 0.15]} 
           sensor 
           onIntersectionEnter={handleFinish} 
-          position={[0, 1.0, 185]} 
+          position={[0, 1.0, 171]} 
         />
       </RigidBody>
     </group>

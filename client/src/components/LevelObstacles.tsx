@@ -97,7 +97,7 @@ interface JumpPadProps {
   color?: string;
 }
 
-export const JumpPad: React.FC<JumpPadProps> = ({ position, boostForce = 11, color = '#00e5ff' }) => {
+export const JumpPad: React.FC<JumpPadProps> = ({ position, boostForce = 12.5, color = '#00e5ff' }) => {
   const handleCollision = (event: any) => {
     const target = event.rigidBodyObject;
     if (target && (target.name === 'player' || target.name === 'bot')) {

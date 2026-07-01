@@ -29,6 +29,8 @@ export const Player: React.FC = () => {
   const diveTimerRef = useRef(0);
   const diveCooldownRef = useRef(0);
   const isGrabbingRef = useRef(false);
+  const jumpCountRef = useRef(0);
+  const wasJumpPressedRef = useRef(false);
 
   // Sound repeat rate timers
   const slideSoundTimer = useRef(0);
@@ -78,19 +80,33 @@ export const Player: React.FC = () => {
       return;
     }
 
-    // 2. Check if grounded using Rapier Raycast
-    const rayOrigin = new THREE.Vector3(pos.x, pos.y, pos.z);
+    // 2. Check if grounded using Rapier Raycast (Velocity Locked & Offset Origin)
+    const rayOrigin = new THREE.Vector3(pos.x, pos.y - 0.51, pos.z);
     const rayDir = { x: 0, y: -1, z: 0 };
-    const maxToi = 0.55;
+    const maxToi = 0.08; // 8cm range below the capsule
     const ray = new rapier.Ray(rayOrigin, rayDir);
     const hit = world.castRay(ray, maxToi, true);
-    isGroundedRef.current = hit !== null;
+    
+    const vel = rigidBody.linvel();
+    const isMovingUp = vel.y > 0.05;
+    isGroundedRef.current = hit !== null && !isMovingUp;
 
     // Trigger landing thud sound
     if (isGroundedRef.current && !wasGroundedRef.current) {
       audioManager.playLand();
     }
     wasGroundedRef.current = isGroundedRef.current;
+
+    // Reset jump counts on ground contact, or apply airborne penalty
+    if (isGroundedRef.current) {
+      jumpCountRef.current = 0;
+    } else if (jumpCountRef.current === 0) {
+      jumpCountRef.current = 1; // fell off a ledge, only 1 jump remaining
+    }
+
+    const isJumpPressed = controls.jump;
+    const justPressedJump = isJumpPressed && !wasJumpPressedRef.current;
+    wasJumpPressedRef.current = isJumpPressed;
 
     // 3. Three.js Raycaster for surface detection (ice, mud, conveyors)
     let currentSurface = 'normal';
@@ -230,10 +246,13 @@ export const Player: React.FC = () => {
 
     let nextVelY = currentVel.y;
     
-    // Jump trigger
-    if (controls.jump && isGroundedRef.current && !isDivingRef.current) {
-      nextVelY = jumpImpulse;
-      audioManager.playJump();
+    // Jump trigger (Double Jump Limit)
+    if (justPressedJump && !isDivingRef.current) {
+      if (isGroundedRef.current || jumpCountRef.current === 1) {
+        nextVelY = jumpImpulse;
+        jumpCountRef.current++;
+        audioManager.playJump();
+      }
     }
 
     rigidBody.setLinvel({ x: nextVelX, y: nextVelY, z: nextVelZ }, true);

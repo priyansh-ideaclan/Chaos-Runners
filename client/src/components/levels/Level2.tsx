@@ -28,14 +28,14 @@ export const Level2: React.FC = () => {
       {/* 2. SECTION 1: MOVING PLATFORMS OVER GAPS */}
       <RigidBody type="fixed" colliders="cuboid">
         {/* Safety middle island */}
-        <mesh receiveShadow position={[0, -0.4, 18]}>
+        <mesh receiveShadow position={[0, -0.4, 16]}>
           <boxGeometry args={[4.5, 0.8, 3.5]} />
           <meshStandardMaterial color={config.groundColor} roughness={0.6} />
         </mesh>
       </RigidBody>
 
-      <MovingPlatform position={[-2.0, -0.4, 10]} size={[2.2, 0.4, 3.5]} direction="x" range={2.2} speed={2.0} color={config.accentColor} />
-      <MovingPlatform position={[2.0, -0.4, 25]} size={[2.2, 0.4, 3.5]} direction="x" range={-2.2} speed={1.8} color={config.obstacleColor2} />
+      <MovingPlatform position={[-2.0, -0.4, 9]} size={[2.2, 0.4, 3.5]} direction="x" range={2.2} speed={2.0} color={config.accentColor} />
+      <MovingPlatform position={[2.0, -0.4, 23]} size={[2.2, 0.4, 3.5]} direction="x" range={-2.2} speed={1.8} color={config.obstacleColor2} />
 
       {/* 3. SECTION 2: WINDMILL ROTORS */}
       <RigidBody type="fixed" colliders="cuboid" friction={0.7}>
@@ -69,7 +69,7 @@ export const Level2: React.FC = () => {
           <meshStandardMaterial color={config.groundColor} />
         </mesh>
       </RigidBody>
-      <JumpPad position={[0, 0, 85]} boostForce={10.0} color={config.obstacleColor2} />
+      <JumpPad position={[0, 0, 85]} boostForce={12.5} color={config.obstacleColor2} />
 
       {/* High deck landing */}
       <RigidBody type="fixed" colliders="cuboid">
@@ -84,21 +84,21 @@ export const Level2: React.FC = () => {
 
       {/* 7. FINISH LINE PLATFORM */}
       <RigidBody type="fixed" colliders="cuboid">
-        <mesh receiveShadow position={[0, 4.1, 110]}>
+        <mesh receiveShadow position={[0, 4.1, 106]}>
           <boxGeometry args={[6, 0.8, 6]} />
           <meshStandardMaterial color={config.groundColor} roughness={0.5} />
         </mesh>
 
         {/* Pillars */}
-        <mesh castShadow position={[-2.2, 6.0, 110]}>
+        <mesh castShadow position={[-2.2, 6.0, 106]}>
           <cylinderGeometry args={[0.15, 0.15, 3.0, 12]} />
           <meshStandardMaterial color={config.obstacleColor2} />
         </mesh>
-        <mesh castShadow position={[2.2, 6.0, 110]}>
+        <mesh castShadow position={[2.2, 6.0, 106]}>
           <cylinderGeometry args={[0.15, 0.15, 3.0, 12]} />
           <meshStandardMaterial color={config.obstacleColor2} />
         </mesh>
-        <mesh castShadow position={[0, 7.5, 110]}>
+        <mesh castShadow position={[0, 7.5, 106]}>
           <boxGeometry args={[4.8, 0.3, 0.4]} />
           <meshStandardMaterial color={config.obstacleColor1} />
         </mesh>
@@ -110,7 +110,7 @@ export const Level2: React.FC = () => {
           args={[2.5, 1.5, 0.15]} 
           sensor 
           onIntersectionEnter={handleFinish} 
-          position={[0, 5.5, 110]} 
+          position={[0, 5.5, 106]} 
         />
       </RigidBody>
     </group>

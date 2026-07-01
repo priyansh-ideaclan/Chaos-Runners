@@ -20,31 +20,31 @@ const LEVEL_1_NODES: Array<[number, number, number]> = [
 ];
 
 const LEVEL_2_NODES: Array<[number, number, number]> = [
-  [0, 0, 0], [0, 0, 6], [-2, 0, 11], [2, 0, 24], [0, 0, 36],
+  [0, 0, 0], [0, 0, 6], [-2, 0, 9], [0, 0, 16], [2, 0, 23], [0, 0, 36],
   [0, 0, 48], [0, 0, 56], [0, 0, 70], [0, 0, 84], [0, 0, 88],
-  [0, 4.1, 95], [0, 4.1, 103], [0, 4.1, 110]
+  [0, 4.1, 95], [0, 4.1, 102], [0, 4.1, 106]
 ];
 
 const LEVEL_3_NODES: Array<[number, number, number]> = [
   [0, 0, 0], [-1.6, 0.25, 14], [1.6, 0.25, 24], [0, 0, 30],
   [0, 0, 40], [0, 0, 50], [0, 0, 58], [-1.2, 0, 70], [1.2, 0, 82],
-  [0, 0, 91], [0, 0, 102], [-1.5, 0, 119], [1.5, 0, 125], [0, 0, 140]
+  [0, 0, 91], [0, 0, 100], [-1.5, 0, 119], [1.5, 0, 125], [0, 0, 134]
 ];
 
 const LEVEL_4_NODES: Array<[number, number, number]> = [
-  [0, 0, 0], [0, 0, 10], [0, 0, 18], [0, 0, 25], [0, 0, 34],
-  [-1.6, 0, 44], [1.6, 0, 52], [0, 0, 60], [0, 0, 76], [0, 0, 85],
-  [0, 0, 100], [0, 0, 114], [0, 0, 126], [0, 0, 138], [0, 0, 150],
-  [0, 0, 160], [0, 0, 172], [0, 0, 185]
+  [0, 0, 0], [0, 0, 8], [0, 0, 10], [0, 0, 18], [0, 0, 26],
+  [-1.6, 0, 35], [1.6, 0, 42], [0, 0, 49], [0, 0, 62], [0, 0, 71],
+  [0, 0, 86], [0, 0, 98], [0, 0, 110], [0, 0, 122], [0, 0, 131],
+  [0, 0, 142], [0, 0, 154], [0, 0, 171]
 ];
 
 const LEVEL_5_NODES: Array<[number, number, number]> = [
-  [0, 9.1, 0], [0, 9.1, 6], [-0.6, 8.5, 11], [0.6, 8.5, 11],
-  [0, 7.8, 16], [-0.6, 7.0, 22], [0.6, 7.0, 22], [0, 6.3, 28],
-  [-0.6, 5.6, 33], [0, 5.0, 40], [0, 4.6, 55], [0, 4.6, 68],
-  [0, 4.6, 77], [0, 4.6, 91], [0, 4.6, 103], [0, 4.6, 115],
-  [0, 4.6, 128], [0, 4.6, 138], [0, 4.6, 155], [0, 4.6, 175],
-  [0, 4.6, 192]
+  [0, 9.1, 0], [0, 9.1, 5], [-0.6, 8.5, 9], [0.6, 8.5, 9],
+  [0, 7.8, 13], [-0.6, 7.0, 17], [0.6, 7.0, 17], [0, 6.3, 21],
+  [-0.6, 5.6, 25], [0, 5.0, 29], [0, 4.6, 44], [0, 4.6, 57],
+  [0, 4.6, 66], [0, 4.6, 80], [0, 4.6, 92], [0, 4.6, 104],
+  [0, 4.6, 117], [0, 4.6, 127], [0, 4.6, 144], [0, 4.6, 164],
+  [0, 4.6, 181]
 ];
 
 const LEVEL_PATHS: Record<number, Array<[number, number, number]>> = {
@@ -81,11 +81,9 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
   const lastPosRef = useRef(new THREE.Vector3());
   const stuckTimeRef = useRef(0);
 
-  // AI ticking optimization
-  const aiTickTimer = useRef(0);
-  const aiTickRate = difficulty === 'EASY' ? 0.25 : difficulty === 'MEDIUM' ? 0.12 : 0.016;
   const isGroundedRef = useRef(false);
   const jumpCooldown = useRef(0);
+  const jumpCountRef = useRef(0);
   
   // Base running speeds
   const botSpeed = useRef(difficulty === 'EASY' ? 3.5 : difficulty === 'MEDIUM' ? 4.2 : 4.9);
@@ -131,16 +129,26 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
 
     const pos = rb.translation();
 
-    // 1. Raycast ground check
-    const rayOrigin = new THREE.Vector3(pos.x, pos.y, pos.z);
+    // 1. Raycast ground check (Velocity Locked & Offset Origin)
+    const rayOrigin = new THREE.Vector3(pos.x, pos.y - 0.51, pos.z);
     const rayDir = { x: 0, y: -1, z: 0 };
-    const maxToi = 0.55;
+    const maxToi = 0.08; // 8cm range below the capsule
     const ray = new rapier.Ray(rayOrigin, rayDir);
     const hit = world.castRay(ray, maxToi, true);
-    isGroundedRef.current = hit !== null;
+    
+    const currentVelocity = rb.linvel();
+    const isMovingUp = currentVelocity.y > 0.05;
+    isGroundedRef.current = hit !== null && !isMovingUp;
 
     if (jumpCooldown.current > 0) {
       jumpCooldown.current -= delta;
+    }
+
+    // Reset jump counts on ground contact, or apply airborne penalty
+    if (isGroundedRef.current) {
+      jumpCountRef.current = 0;
+    } else if (jumpCountRef.current === 0) {
+      jumpCountRef.current = 1; // fell off a ledge, only 1 jump remaining
     }
 
     // 2. Teleport check if fell below kill boundaries
@@ -205,6 +213,12 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       jumpImpulse = 3.2;
     }
 
+    // Natural hesitation slowdown before gap jumps for Easy/Medium bots
+    const isNearGap = (currentLevel === 1 && pos.z > 7.5 && pos.z < 9.5) || (currentLevel === 1 && pos.z > 22.5 && pos.z < 24.5);
+    if (isNearGap && (difficulty === 'EASY' || difficulty === 'MEDIUM') && Math.random() < 0.25) {
+      activeSpeed *= 0.65;
+    }
+
     // 4b. Wind Zone detection
     let windForceX = 0;
     let windForceZ = 0;
@@ -230,7 +244,6 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
     });
 
     // AI Path steering updates
-    aiTickTimer.current -= delta;
     let steerDir = new THREE.Vector3(0, 0, 0);
     let shouldJump = false;
 
@@ -255,6 +268,16 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       steerDir.y = 0;
       steerDir.normalize();
 
+      // Introduce human-like waddle steering noise (lateral zig-zag drift)
+      const botIdx = parseInt(id.replace('bot_', '')) || 0;
+      const clockTime = state.clock.getElapsedTime();
+      const waddleSpeed = 5.0 + (botIdx % 3) * 1.2;
+      const waddleAmp = 0.12 + (botIdx % 2) * 0.06;
+      
+      const lateralDir = new THREE.Vector3(-steerDir.z, 0, steerDir.x);
+      steerDir.addScaledVector(lateralDir, Math.sin(clockTime * waddleSpeed) * waddleAmp);
+      steerDir.normalize();
+
       // Qualify finish check
       if (currentNodeIndex.current === pathNodes.length - 1 && dist < 1.4) {
         setIsQualified(true);
@@ -264,50 +287,77 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       }
     }
 
-    // 5. Jump logic conditions
-    if (aiTickTimer.current <= 0) {
-      aiTickTimer.current = aiTickRate;
+    // 5. Jump decision logic (evaluated every frame for responsive timing!)
 
-      // Obstacle sweeper jumping
-      const obstacles = state.scene.children.filter((child) => child.name === 'rotating-arm' || child.name === 'obstacle');
-      obstacles.forEach((obs) => {
-        const obsPos = new THREE.Vector3();
-        obs.getWorldPosition(obsPos);
-        const obsDist = new THREE.Vector3(pos.x, pos.y, pos.z).distanceTo(obsPos);
-        if (obsDist < 2.5 && jumpCooldown.current <= 0 && Math.random() < (difficulty === 'EASY' ? 0.35 : 0.75)) {
+    // A. Forward-Downward Raycast sensor for Gap/Void detection
+    const forwardOffset = steerDir.clone().multiplyScalar(0.5);
+    const forwardRayOrigin = new THREE.Vector3(pos.x + forwardOffset.x, pos.y - 0.51, pos.z + forwardOffset.z);
+    const forwardRay = new rapier.Ray(forwardRayOrigin, { x: 0, y: -1, z: 0 });
+    const forwardHit = world.castRay(forwardRay, 0.5, true);
+    
+    if (forwardHit === null && isGroundedRef.current && jumpCooldown.current <= 0) {
+      shouldJump = true;
+    }
+
+    // B. Obstacle sweeper jumping with timing checks (dodging approaching arms)
+    const sweepers = state.scene.children.filter((child) => child.name === 'rotating-arm');
+    sweepers.forEach((sweeper) => {
+      const sweeperPos = new THREE.Vector3();
+      sweeper.getWorldPosition(sweeperPos);
+      const dist = new THREE.Vector3(pos.x, pos.y, pos.z).distanceTo(sweeperPos);
+      
+      // If close to rotating sweeper base, check arm sweep angle
+      if (dist < 3.2 && jumpCooldown.current <= 0) {
+        const botAngle = Math.atan2(pos.x - sweeperPos.x, pos.z - sweeperPos.z);
+        const sweepRot = sweeper.rotation.y;
+        let angleDiff = Math.abs(sweepRot - botAngle);
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        angleDiff = Math.abs(angleDiff);
+
+        // If blade is approaching within 45 degrees, trigger timed leap
+        if (angleDiff < 0.8 && Math.random() < (difficulty === 'EASY' ? 0.5 : difficulty === 'MEDIUM' ? 0.8 : 0.98)) {
           shouldJump = true;
         }
-      });
-
-      // Level specific jumping
-      if (currentLevel === 0) {
-        if (pos.z > 9 && pos.z < 21 && Math.random() < 0.1) shouldJump = true; // Hurdles
-      } else if (currentLevel === 1) {
-        if (pos.z > 8 && pos.z < 26 && Math.random() < 0.15) shouldJump = true; // Gaps
-        if (pos.z > 83.5 && pos.z < 86.5 && Math.abs(pos.x) < 0.8) shouldJump = true; // Jump pad
-      } else if (currentLevel === 2) {
-        if (pos.z > 108 && pos.z < 129 && Math.random() < 0.12) shouldJump = true; // Balance beams void
-      } else if (currentLevel === 3) {
-        if (pos.z > 8 && pos.z < 33 && Math.random() < 0.08) shouldJump = true; // Collapsing tiles
-        if (pos.z > 41 && pos.z < 65 && Math.random() < 0.18) shouldJump = true; // Precision jumps
-        if (pos.z > 84 && pos.z < 87 && Math.abs(pos.x) < 0.8) shouldJump = true; // Mud speed jump pad
-      } else if (currentLevel === 4) {
-        if (pos.z > 4 && pos.z < 35 && Math.random() < 0.1) shouldJump = true; // Hex tiles climb
-        if (pos.z > 136 && pos.z < 139) shouldJump = true; // Mud speed jump pad
       }
+    });
 
-      // --- STUCK RECOVERY ENGINE ---
-      const displacement = new THREE.Vector2(pos.x - lastPosRef.current.x, pos.z - lastPosRef.current.z).length();
-      if (displacement < 0.02 && steerDir.lengthSq() > 0.01) {
-        stuckTimeRef.current += aiTickRate;
-        if (stuckTimeRef.current > 0.8 && isGroundedRef.current && jumpCooldown.current <= 0) {
-          shouldJump = true;
-          stuckTimeRef.current = 0;
-        }
-      } else {
+    // C. Mid-air recovery jumping (double jump if falling)
+    const currentVelY = rb.linvel().y;
+    if (!isGroundedRef.current && currentVelY < -0.2 && jumpCountRef.current === 1 && jumpCooldown.current <= 0) {
+      if (Math.random() < (difficulty === 'EASY' ? 0.2 : difficulty === 'MEDIUM' ? 0.6 : 0.9)) {
+        shouldJump = true;
+      }
+    }
+
+    // D. Stuck check / Barrier hopping (if speed is slow while trying to run)
+    const displacement = new THREE.Vector2(pos.x - lastPosRef.current.x, pos.z - lastPosRef.current.z).length();
+    if (displacement < 0.02 && steerDir.lengthSq() > 0.01) {
+      stuckTimeRef.current += delta;
+      if (stuckTimeRef.current > 0.35 && isGroundedRef.current && jumpCooldown.current <= 0) {
+        shouldJump = true;
         stuckTimeRef.current = 0;
       }
-      lastPosRef.current.set(pos.x, pos.y, pos.z);
+    } else {
+      stuckTimeRef.current = 0;
+    }
+    lastPosRef.current.set(pos.x, pos.y, pos.z);
+
+    // E. Level-Specific Jump Triggers (e.g. Launch pads)
+    if (currentLevel === 1) {
+      // Level 2 Jump Pad zone
+      if (pos.z > 83.5 && pos.z < 86.5 && Math.abs(pos.x) < 1.0 && jumpCooldown.current <= 0) {
+        shouldJump = true;
+      }
+    } else if (currentLevel === 3) {
+      // Level 4 Mud Speed Jump Pad
+      if (pos.z > 83.5 && pos.z < 86.5 && Math.abs(pos.x) < 1.0 && jumpCooldown.current <= 0) {
+        shouldJump = true;
+      }
+    } else if (currentLevel === 4) {
+      // Level 5 Mud Speed Jump Pad
+      if (pos.z > 136 && pos.z < 139 && Math.abs(pos.x) < 1.0 && jumpCooldown.current <= 0) {
+        shouldJump = true;
+      }
     }
 
     // Apply linear velocities
@@ -316,9 +366,10 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
     let moveTargetZ = steerDir.z * activeSpeed;
     let moveTargetY = vel.y;
 
-    if (shouldJump && isGroundedRef.current && jumpCooldown.current <= 0) {
+    if (shouldJump && jumpCooldown.current <= 0 && jumpCountRef.current < 2) {
       moveTargetY = jumpImpulse;
-      jumpCooldown.current = 1.0;
+      jumpCooldown.current = 0.5; // short cooldown between double jumps
+      jumpCountRef.current++;
     }
 
     const nextVelX = THREE.MathUtils.lerp(vel.x, moveTargetX + windForceX, accelerationRatio);
