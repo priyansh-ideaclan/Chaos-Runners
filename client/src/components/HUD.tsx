@@ -1,9 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { Timer, Trophy, RotateCcw, Home, HelpCircle } from 'lucide-react';
+import { Timer, Trophy, RotateCcw, Home, HelpCircle, Volume2, VolumeX } from 'lucide-react';
+
+const LEVEL_NAMES: Record<number, string> = {
+  0: 'Level 1: Beginner Bounds',
+  1: 'Level 2: Conveyor Crossing',
+  2: 'Level 3: Slippery Slopes',
+  3: 'Level 4: Precise Pendulums',
+  4: 'Level 5: Final Ascent',
+};
 
 export const HUD: React.FC = () => {
-  const { phase, timeElapsed, tick, resetGame, setPhase, wins } = useGameStore();
+  const { 
+    phase, 
+    timeElapsed, 
+    tick, 
+    resetGame, 
+    setPhase, 
+    currentLevelIndex, 
+    qualifiedBots, 
+    playerQualified,
+    botQualifyingLimit,
+    musicMuted,
+    toggleMute
+  } = useGameStore();
+  
   const [fps, setFps] = useState(60);
 
   // Tick the stopwatch if playing
@@ -12,7 +33,7 @@ export const HUD: React.FC = () => {
 
     const interval = setInterval(() => {
       tick();
-    }, 50); // 20hz update for stopwatch is plenty precise and friendly to react render cycles
+    }, 50);
 
     return () => clearInterval(interval);
   }, [phase, tick]);
@@ -41,6 +62,7 @@ export const HUD: React.FC = () => {
   if (phase === 'MENU') return null;
 
   const formattedTime = timeElapsed.toFixed(2);
+  const raceQualifiedCount = qualifiedBots.length + (playerQualified ? 1 : 0);
 
   return (
     <div className="ui-layer">
@@ -52,23 +74,27 @@ export const HUD: React.FC = () => {
           width: '100%',
           pointerEvents: 'none',
         }}>
-          {/* Timer card */}
+          {/* Timer & Level Title */}
           <div className="glass-panel" style={{
             padding: '12px 24px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '16px',
             border: '2px solid rgba(255, 255, 255, 0.1)',
           }}>
-            <Timer size={20} color="var(--secondary)" />
+            <Timer size={22} color="var(--secondary)" />
             <div>
-              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>Time Elapsed</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, fontFamily: 'monospace', color: 'white' }}>{formattedTime}s</div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--secondary)', letterSpacing: '0.05em' }}>
+                {LEVEL_NAMES[currentLevelIndex] || 'Campaign'}
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, fontFamily: 'monospace', color: 'white', lineHeight: 1.1 }}>
+                {formattedTime}s
+              </div>
             </div>
           </div>
 
-          {/* Qualification Indicator & Stats */}
-          <div style={{ display: 'flex', gap: '12px' }}>
+          {/* Qualification Indicator & Quick Controls */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
             <div className="glass-panel" style={{
               padding: '12px 20px',
               textAlign: 'right',
@@ -76,7 +102,13 @@ export const HUD: React.FC = () => {
               boxShadow: '0 0 10px var(--primary-glow)',
             }}>
               <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--primary)', fontWeight: 800 }}>Qualified</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'white' }}>0 / 1</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'white' }}>{raceQualifiedCount} / {botQualifyingLimit}</div>
+              
+              {qualifiedBots.length > 0 && (
+                <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', marginTop: '4px', maxWidth: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Passed: {qualifiedBots.slice(-2).join(', ')}
+                </div>
+              )}
             </div>
 
             <div className="glass-panel" style={{
@@ -89,9 +121,28 @@ export const HUD: React.FC = () => {
               gap: '2px',
               fontWeight: 600,
             }}>
-              <div>PING: <span style={{ color: 'var(--secondary)', fontWeight: 800 }}>12ms</span></div>
+              <div>BOTS: <span style={{ color: 'var(--secondary)', fontWeight: 800 }}>9 ACTIVE</span></div>
               <div>FPS: <span style={{ color: 'var(--yellow)', fontWeight: 800 }}>{fps}</span></div>
             </div>
+
+            {/* Quick volume mute/unmute button */}
+            <button
+              className="ui-interactive glass-panel"
+              onClick={() => toggleMute('music')}
+              style={{
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                border: '1px solid var(--glass-border)',
+                background: 'var(--glass-bg)',
+                height: '46px',
+                boxSizing: 'border-box'
+              }}
+            >
+              {musicMuted ? <VolumeX size={16} color="var(--primary)" /> : <Volume2 size={16} color="var(--secondary)" />}
+            </button>
           </div>
         </div>
       )}
@@ -120,20 +171,22 @@ export const HUD: React.FC = () => {
               }}>
                 <Trophy size={40} color="var(--yellow)" />
               </div>
-              <h2 className="neon-text-cyan" style={{ fontSize: '2.5rem', margin: '0 0 8px 0', fontWeight: 900 }}>
+              <h2 className="neon-text-cyan" style={{ fontSize: '2.4rem', margin: '0 0 8px 0', fontWeight: 900 }}>
                 QUALIFIED!
               </h2>
-              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1.1rem', margin: '0 0 24px 0' }}>
-                You beat the course in <strong style={{ color: '#fff' }}>{formattedTime}</strong> seconds!
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1rem', margin: '0 0 24px 0' }}>
+                You completed <strong style={{ color: 'var(--secondary)' }}>{LEVEL_NAMES[currentLevelIndex]}</strong> in <strong style={{ color: '#fff' }}>{formattedTime}s</strong>!
               </p>
             </>
           ) : (
             <>
-              <h2 className="neon-text-pink" style={{ fontSize: '2.5rem', margin: '0 0 8px 0', fontWeight: 900 }}>
+              <h2 className="neon-text-pink" style={{ fontSize: '2.4rem', margin: '0 0 8px 0', fontWeight: 900 }}>
                 ELIMINATED!
               </h2>
-              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1.1rem', margin: '0 0 24px 0' }}>
-                You fell behind the time limit or was knocked off the map!
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1rem', margin: '0 0 24px 0' }}>
+                {raceQualifiedCount >= botQualifyingLimit 
+                  ? "All qualification slots have been filled by other players!" 
+                  : "You fell off the platforms or ran out of time!"}
               </p>
             </>
           )}
@@ -141,7 +194,7 @@ export const HUD: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button className="btn-primary" onClick={resetGame} style={{ width: '100%', justifyContent: 'center' }}>
               <RotateCcw size={18} />
-              Run Again
+              Replay Race
             </button>
             <button className="btn-secondary" onClick={() => setPhase('MENU')} style={{ width: '100%', display: 'flex', gap: '8px', justifyContent: 'center' }}>
               <Home size={18} />
@@ -194,7 +247,7 @@ export const HUD: React.FC = () => {
             }}
           >
             <RotateCcw size={14} />
-            Reset Level
+            Reset Course
           </button>
         </div>
       )}

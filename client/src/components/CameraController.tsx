@@ -20,8 +20,8 @@ export const CameraController: React.FC = () => {
   const maxPitch = Math.PI / 6;  // Look down limit
   
   // Camera zoom distance
-  const currentDistance = useRef(6.5);
-  const targetDistance = 6.5;
+  const currentDistance = useRef(4.0);
+  const targetDistance = 4.0;
 
   useEffect(() => {
     if (phase !== 'PLAYING') {
@@ -73,7 +73,7 @@ export const CameraController: React.FC = () => {
     playerMesh.getWorldPosition(playerPos);
 
     // Camera target (look at player's head area)
-    const targetLookAt = playerPos.clone().add(new THREE.Vector3(0, 1.2, 0));
+    const targetLookAt = playerPos.clone().add(new THREE.Vector3(0, 0.6, 0));
 
     // Calculate camera offset using spherical coordinates
     const offset = new THREE.Vector3();
