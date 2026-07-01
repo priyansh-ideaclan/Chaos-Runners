@@ -44,7 +44,9 @@ export const MainMenu: React.FC = () => {
     musicMuted,
     sfxMuted,
     setVolume,
-    toggleMute
+    toggleMute,
+    playerName,
+    setPlayerName,
   } = useGameStore();
 
   // Start background music loop on main lobby entry
@@ -91,9 +93,30 @@ export const MainMenu: React.FC = () => {
               Sequential fixed campaign
             </span>
           </div>
-          <h1 className="gradient-title" style={{ fontSize: '2.5rem', margin: '0 0 10px 0', lineHeight: 1.1 }}>
+          <h1 className="gradient-title" style={{ fontSize: '2.5rem', margin: '0 0 6px 0', lineHeight: 1.1 }}>
             CHAO RUNNERS
           </h1>
+          {/* Player identity badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>Welcome,</span>
+            <span style={{ fontSize: '0.9rem', color: 'var(--secondary)', fontWeight: 800 }}>{playerName}</span>
+            <button
+              onClick={() => { setPlayerName(''); audioManager.playClick(); }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'rgba(255,255,255,0.3)',
+                fontSize: '0.7rem',
+                cursor: 'pointer',
+                padding: '0',
+                textDecoration: 'underline',
+                fontFamily: 'inherit',
+              }}
+              title="Change your racer name"
+            >
+              change
+            </button>
+          </div>
           <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem', margin: '0 0 16px 0' }}>
             Handcrafted courses, sliding ice fields, slowing mud, and high-performance competitive AI bots. Race, jump, and dive to grab the crown!
           </p>

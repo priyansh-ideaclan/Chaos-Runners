@@ -3,6 +3,16 @@ import { create } from 'zustand';
 export type GamePhase = 'MENU' | 'PLAYING' | 'QUALIFIED' | 'GAMEOVER';
 export type VisualTheme = 'SKY_BLUE' | 'SUNSET_ORANGE' | 'PURPLE_NEON' | 'CANDY_LAND' | 'SPACE';
 
+/** Tracks each racer's live progress for leaderboard sorting */
+export interface RacerProgress {
+  id: string;          // 'player' | 'bot_0' ... 'bot_8'
+  name: string;
+  nodeIndex: number;   // Furthest navigation node reached
+  zPos: number;        // Continuous Z position for sub-node tiebreaker
+  finished: boolean;
+  finishTime?: number;
+}
+
 export interface PlayerCustomization {
   color: string;
   accessory: string;
@@ -16,6 +26,9 @@ interface GameState {
   customization: PlayerCustomization;
   wins: number;
   failures: number;
+
+  // Player identity (persisted)
+  playerName: string;
   
   // Sequential Level & Theme states
   currentLevelIndex: number;
@@ -26,6 +39,9 @@ interface GameState {
   eliminatedBots: string[];
   playerQualified: boolean;
   botQualifyingLimit: number;
+
+  // Live race leaderboard data
+  racerProgress: Record<string, RacerProgress>;
   
   // Audio settings (Persisted)
   masterVolume: number;
@@ -43,6 +59,12 @@ interface GameState {
   triggerWin: () => void;
   triggerLoss: () => void;
   tick: () => void;
+
+  // Player name
+  setPlayerName: (name: string) => void;
+
+  // Live leaderboard
+  updateRacerProgress: (progress: RacerProgress) => void;
   
   // Bot Actions
   qualifyBot: (id: string) => void;
@@ -90,6 +112,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   wins: 0,
   failures: 0,
 
+  // Player identity (persisted in localStorage)
+  playerName: localStorage.getItem('chaorunners_player_name') || '',
+
   // Level Progression defaults (persisted)
   currentLevelIndex: 0,
   maxLevelUnlocked: Math.round(getStoredNumber('chaorunners_max_unlocked', 0)),
@@ -100,6 +125,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   playerQualified: false,
   botQualifyingLimit: 5,
 
+  // Live leaderboard (reset each race)
+  racerProgress: {},
+
   // Audio settings defaults (persisted)
   masterVolume: getStoredNumber('chaorunners_vol_master', 1.0),
   musicVolume: getStoredNumber('chaorunners_vol_music', 0.6),
@@ -108,6 +136,16 @@ export const useGameStore = create<GameState>((set, get) => ({
   sfxMuted: getStoredBoolean('chaorunners_mute_sfx', false),
 
   setPhase: (phase) => set({ phase }),
+
+  setPlayerName: (name) => {
+    const trimmed = name.trim();
+    localStorage.setItem('chaorunners_player_name', trimmed);
+    set({ playerName: trimmed });
+  },
+
+  updateRacerProgress: (progress) => set((state) => ({
+    racerProgress: { ...state.racerProgress, [progress.id]: progress },
+  })),
 
   startGame: () => {
     const levelIdx = get().currentLevelIndex;
@@ -125,6 +163,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       qualifiedBots: [],
       eliminatedBots: [],
       playerQualified: false,
+      racerProgress: {},
     });
   },
 
@@ -144,6 +183,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       qualifiedBots: [],
       eliminatedBots: [],
       playerQualified: false,
+      racerProgress: {},
     });
   },
 

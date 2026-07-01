@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { Timer, Trophy, RotateCcw, Home, HelpCircle, Volume2, VolumeX } from 'lucide-react';
+import { RaceLeaderboard } from './RaceLeaderboard';
 
 const LEVEL_NAMES: Record<number, string> = {
   0: 'Level 1: Beginner Bounds',
@@ -22,7 +23,8 @@ export const HUD: React.FC = () => {
     playerQualified,
     botQualifyingLimit,
     musicMuted,
-    toggleMute
+    toggleMute,
+    playerName,
   } = useGameStore();
   
   const [fps, setFps] = useState(60);
@@ -203,6 +205,9 @@ export const HUD: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Live Leaderboard — bottom-right */}
+      <RaceLeaderboard />
 
       {/* Bottom Row Controls Cheat Sheet */}
       {phase === 'PLAYING' && (

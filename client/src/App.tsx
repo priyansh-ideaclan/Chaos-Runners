@@ -2,6 +2,7 @@ import React from 'react';
 import { GameCanvas } from './components/GameCanvas';
 import { MainMenu } from './components/MainMenu';
 import { HUD } from './components/HUD';
+import { PlayerNameEntry } from './components/PlayerNameEntry';
 
 const App: React.FC = () => {
   return (
@@ -11,6 +12,9 @@ const App: React.FC = () => {
 
       {/* HTML UI overlays */}
       <div className="ui-layer" style={{ height: '100%' }}>
+        {/* Name entry screen (shown only when playerName is empty) */}
+        <PlayerNameEntry />
+
         <MainMenu />
         <HUD />
       </div>

@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, CapsuleCollider, useRapier, RapierRigidBody } from '@react-three/rapier';
+import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGameStore } from '../store/useGameStore';
 
@@ -69,6 +70,10 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
   const currentLevel = useGameStore((state) => state.currentLevelIndex);
   const qualifyBot = useGameStore((state) => state.qualifyBot);
   const eliminateBot = useGameStore((state) => state.eliminateBot);
+  const updateRacerProgress = useGameStore((state) => state.updateRacerProgress);
+
+  // Ref for camera-distance opacity of name label
+  const nameLabelRef = useRef<any>(null);
 
   // States
   const [isQualified, setIsQualified] = useState(false);
@@ -160,6 +165,24 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       rb.setAngvel(new THREE.Vector3(0, 0, 0), true);
       stuckTimeRef.current = 0;
       return;
+    }
+
+    // Report live leaderboard progress
+    updateRacerProgress({
+      id,
+      name,
+      nodeIndex: currentNodeIndex.current,
+      zPos: pos.z,
+      finished: isQualified,
+    });
+
+    // Update name label opacity based on camera distance
+    if (nameLabelRef.current) {
+      const camPos = state.camera.position;
+      const dist = Math.sqrt(
+        (camPos.x - pos.x) ** 2 + (camPos.y - pos.y) ** 2 + (camPos.z - pos.z) ** 2
+      );
+      nameLabelRef.current.fillOpacity = dist > 35 ? Math.max(0, 1 - (dist - 35) / 15) : 1;
     }
 
     // Checkpoint updates based on positions
@@ -498,6 +521,22 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
             <mesh position={[0.08, -0.02, 0.01]}><boxGeometry args={[0.12, 0.08, 0.02]} /><meshStandardMaterial color="#ff007f" transparent opacity={0.8} /></mesh>
           </group>
         )}
+
+        {/* Billboard name label above bot head */}
+        <Text
+          ref={nameLabelRef}
+          position={[0, 1.45, 0]}
+          fontSize={0.20}
+          color={color}
+          anchorX="center"
+          anchorY="bottom"
+          outlineWidth={0.008}
+          outlineColor="#000000"
+          renderOrder={999}
+          depthOffset={-1}
+        >
+          {name}
+        </Text>
       </group>
     </RigidBody>
   );

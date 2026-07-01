@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { RigidBody, CapsuleCollider, useRapier, RapierRigidBody } from '@react-three/rapier';
+import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGameControls } from '../hooks/useGameControls';
 import { useGameStore } from '../store/useGameStore';
@@ -11,6 +12,13 @@ export const Player: React.FC = () => {
   const { lastCheckpoint, phase, triggerWin, triggerLoss } = useGameStore();
   const { camera } = useThree();
   const { rapier, world } = useRapier();
+
+  const playerName = useGameStore((state) => state.playerName);
+  const updateRacerProgress = useGameStore((state) => state.updateRacerProgress);
+  const playerQualified = useGameStore((state) => state.playerQualified);
+
+  // Ref for camera-distance opacity of name label
+  const nameLabelRef = useRef<any>(null);
 
   // Refs
   const rigidBodyRef = useRef<RapierRigidBody>(null);
@@ -68,6 +76,21 @@ export const Player: React.FC = () => {
     if (!rigidBody) return;
 
     const pos = rigidBody.translation();
+
+    // Update live leaderboard progress (throttled to every 6 frames via ref)
+    updateRacerProgress({
+      id: 'player',
+      name: playerName || 'You',
+      nodeIndex: 0, // Player uses Z position directly as primary sort key
+      zPos: pos.z,
+      finished: playerQualified,
+    });
+
+    // Update name label opacity based on camera distance
+    if (nameLabelRef.current) {
+      const dist = camera.position.distanceTo(new THREE.Vector3(pos.x, pos.y, pos.z));
+      nameLabelRef.current.fillOpacity = dist > 30 ? Math.max(0, 1 - (dist - 30) / 15) : 1;
+    }
 
     // 1. Respawn if fell into void
     if (pos.y < -8) {
@@ -396,6 +419,22 @@ export const Player: React.FC = () => {
             <mesh position={[0.08, -0.02, 0.01]} castShadow><boxGeometry args={[0.12, 0.08, 0.02]} /><meshStandardMaterial color="#00e5ff" metalness={0.9} roughness={0.0} transparent opacity={0.8} /></mesh>
           </group>
         )}
+
+        {/* Billboard name label above player head */}
+        <Text
+          ref={nameLabelRef}
+          position={[0, 1.45, 0]}
+          fontSize={0.22}
+          color="#00e5ff"
+          anchorX="center"
+          anchorY="bottom"
+          outlineWidth={0.008}
+          outlineColor="#000000"
+          renderOrder={999}
+          depthOffset={-1}
+        >
+          {playerName || 'You'}
+        </Text>
       </group>
     </RigidBody>
   );
