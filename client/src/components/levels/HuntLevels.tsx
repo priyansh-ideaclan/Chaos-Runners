@@ -20,7 +20,7 @@ const FloatingStar: React.FC<StarProps> = ({ position, onCollect, color }) => {
   useFrame((state) => {
     if (meshRef.current) {
       meshRef.current.rotation.y = state.clock.getElapsedTime() * 3.5;
-      meshRef.current.position.y = position[1] + Math.sin(state.clock.getElapsedTime() * 5.0) * 0.15;
+      meshRef.current.position.y = position[1] + Math.sin(state.clock.getElapsedTime() * 5.0) * 0.2;
     }
   });
 
@@ -28,7 +28,6 @@ const FloatingStar: React.FC<StarProps> = ({ position, onCollect, color }) => {
     const target = event.rigidBodyObject;
     if (target && (target.name === 'player' || target.name === 'bot')) {
       const racerId = target.name === 'player' ? 'player' : target.userData?.id || 'bot';
-      // Trigger store score update
       useGameStore.getState().updateScore(racerId, 1);
       audioManager.playClick();
       onCollect();
@@ -39,13 +38,18 @@ const FloatingStar: React.FC<StarProps> = ({ position, onCollect, color }) => {
     <group position={position} name="star">
       {/* Visual Star */}
       <mesh ref={meshRef} castShadow>
-        <octahedronGeometry args={[0.3, 0]} />
-        <meshStandardMaterial color={color} roughness={0.1} metalness={0.9} emissive={color} emissiveIntensity={0.6} />
+        <octahedronGeometry args={[0.35, 0]} />
+        <meshStandardMaterial color={color} roughness={0.1} metalness={0.9} emissive={color} emissiveIntensity={0.7} />
       </mesh>
-      
+      {/* Glow ring */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.5, 0.04, 6, 16]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.4} transparent opacity={0.5} />
+      </mesh>
+
       {/* Sensor */}
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[0.5, 0.5, 0.5]} sensor onIntersectionEnter={handleEnter} />
+        <CuboidCollider args={[0.6, 0.6, 0.6]} sensor onIntersectionEnter={handleEnter} />
       </RigidBody>
     </group>
   );
@@ -55,35 +59,36 @@ export const Hunt1: React.FC = () => {
   const theme = useGameStore((state) => state.visualTheme);
   const config = getThemeConfig(theme);
 
-  // Pool of possible star positions
+  // Large pool of star positions across the expanded arena
   const STAR_POSITIONS: [number, number, number][] = [
-    [-5, 0.6, -5],
-    [5, 0.6, -5],
-    [-5, 0.6, 5],
-    [5, 0.6, 5],
-    [0, 0.6, 0],
-    [-3, 1.8, 0],
-    [3, 1.8, 0],
-    [0, 1.8, -3],
-    [0, 1.8, 3],
-    [-2, 3.2, -2], // High positions above bounce pads
-    [2, 3.2, 2],
+    // Ground level
+    [-7, 0.8, -7], [7, 0.8, -7], [-7, 0.8, 7], [7, 0.8, 7],
+    [0, 0.8, 0],
+    [-4, 0.8, -4], [4, 0.8, -4], [-4, 0.8, 4], [4, 0.8, 4],
+    [-7, 0.8, 0], [7, 0.8, 0], [0, 0.8, -7], [0, 0.8, 7],
+    // Elevated platform level
+    [-3, 2.0, 0], [3, 2.0, 0],
+    [0, 2.0, -3], [0, 2.0, 3],
+    [-3, 2.0, -3], [3, 2.0, 3],
+    // High positions (above jump pads)
+    [-4, 3.8, -4], [4, 3.8, 4],
+    [0, 3.8, -5], [0, 3.8, 5],
+    // Corner towers
+    [-6, 2.8, -6], [6, 2.8, -6], [-6, 2.8, 6], [6, 2.8, 6],
   ];
 
-  // Active indices of stars currently spawned
-  const [activeStarPos, setActiveStarPos] = useState<[number, number, number][]>([
-    [-5, 0.6, -5],
-    [5, 0.6, -5],
-    [-5, 0.6, 5],
-    [5, 0.6, 5],
-    [0, 0.6, 0],
-  ]);
+  const INITIAL_COUNT = 8;
+
+  const [activeStarPos, setActiveStarPos] = useState<[number, number, number][]>(
+    STAR_POSITIONS.slice(0, INITIAL_COUNT)
+  );
 
   const handleStarCollected = (indexToReplace: number) => {
     setActiveStarPos((prev) => {
       const next = [...prev];
-      // Pick a new position from the pool that isn't currently in next
-      const unused = STAR_POSITIONS.filter(pos => !next.some(n => n[0] === pos[0] && n[2] === pos[2]));
+      const unused = STAR_POSITIONS.filter(
+        (pos) => !next.some((n) => n[0] === pos[0] && n[1] === pos[1] && n[2] === pos[2])
+      );
       if (unused.length > 0) {
         next[indexToReplace] = unused[Math.floor(Math.random() * unused.length)];
       }
@@ -93,43 +98,69 @@ export const Hunt1: React.FC = () => {
 
   return (
     <group name="hunt_1">
-      {/* 1. Main Arena Floor */}
+      {/* 1. Main Arena Floor — large open area */}
       <RigidBody type="fixed" colliders="cuboid" friction={0.6}>
         <mesh receiveShadow position={[0, -0.4, 0]}>
-          <boxGeometry args={[14, 0.8, 14]} />
+          <boxGeometry args={[20, 0.8, 20]} />
           <meshStandardMaterial color={config.groundColor} roughness={0.7} />
         </mesh>
       </RigidBody>
 
-      {/* Ramps & Raised platforms */}
+      {/* 2. Raised center platform */}
       <RigidBody type="fixed" colliders="cuboid">
-        {/* Left platform */}
-        <mesh receiveShadow castShadow position={[-3, 0.5, 0]}>
-          <boxGeometry args={[2, 1.0, 3]} />
-          <meshStandardMaterial color={config.obstacleColor1} roughness={0.6} />
-        </mesh>
-        {/* Right platform */}
-        <mesh receiveShadow castShadow position={[3, 0.5, 0]}>
-          <boxGeometry args={[2, 1.0, 3]} />
-          <meshStandardMaterial color={config.obstacleColor1} roughness={0.6} />
-        </mesh>
-        {/* Top platform */}
-        <mesh receiveShadow castShadow position={[0, 0.5, -3]}>
-          <boxGeometry args={[3, 1.0, 2]} />
-          <meshStandardMaterial color={config.accentColor} roughness={0.6} />
-        </mesh>
-        {/* Bottom platform */}
-        <mesh receiveShadow castShadow position={[0, 0.5, 3]}>
-          <boxGeometry args={[3, 1.0, 2]} />
-          <meshStandardMaterial color={config.accentColor} roughness={0.6} />
+        <mesh receiveShadow castShadow position={[0, 0.8, 0]}>
+          <boxGeometry args={[4, 1.6, 4]} />
+          <meshStandardMaterial color={config.accentColor} roughness={0.5} />
         </mesh>
       </RigidBody>
 
-      {/* Jump pads to reach high stars */}
-      <JumpPad position={[-2, 0.05, -2]} boostForce={12.0} color={config.obstacleColor2} />
-      <JumpPad position={[2, 0.05, 2]} boostForce={12.0} color={config.obstacleColor2} />
+      {/* 3. Four corner raised platforms */}
+      {([[-7, 1.2, -7], [7, 1.2, -7], [-7, 1.2, 7], [7, 1.2, 7]] as [number, number, number][]).map((pos, i) => (
+        <RigidBody key={`corner_${i}`} type="fixed" colliders="cuboid">
+          <mesh receiveShadow castShadow position={pos}>
+            <boxGeometry args={[3, 2.4, 3]} />
+            <meshStandardMaterial color={i % 2 === 0 ? config.obstacleColor1 : config.obstacleColor2} roughness={0.5} />
+          </mesh>
+        </RigidBody>
+      ))}
 
-      {/* Render active stars */}
+      {/* 4. Side mid-platforms */}
+      {([[-7, 0.8, 0], [7, 0.8, 0], [0, 0.8, -7], [0, 0.8, 7]] as [number, number, number][]).map((pos, i) => (
+        <RigidBody key={`side_${i}`} type="fixed" colliders="cuboid">
+          <mesh receiveShadow castShadow position={pos}>
+            <boxGeometry args={[2.5, 1.6, 2.5]} />
+            <meshStandardMaterial color={config.groundColor} roughness={0.6} />
+          </mesh>
+        </RigidBody>
+      ))}
+
+      {/* 5. Jump pads to reach high stars */}
+      <JumpPad position={[-4, 0.05, -4]} boostForce={14.0} color={config.obstacleColor2} />
+      <JumpPad position={[4, 0.05, 4]} boostForce={14.0} color={config.obstacleColor2} />
+      <JumpPad position={[-4, 0.05, 4]} boostForce={14.0} color={config.accentColor} />
+      <JumpPad position={[4, 0.05, -4]} boostForce={14.0} color={config.accentColor} />
+
+      {/* 6. Kill zone — fall off = eliminated */}
+      <RigidBody type="fixed" colliders={false}>
+        <CuboidCollider
+          args={[35, 0.5, 35]}
+          position={[0, -3.5, 0]}
+          sensor
+          onIntersectionEnter={(event: any) => {
+            if (useGameStore.getState().phase !== 'PLAYING') return;
+            const rb = event.rigidBodyObject;
+            if (!rb) return;
+            if (rb.name === 'player') {
+              useGameStore.getState().eliminateRacer('player');
+            } else if (rb.name === 'bot') {
+              const botId = rb.userData?.id;
+              if (botId) useGameStore.getState().eliminateRacer(botId);
+            }
+          }}
+        />
+      </RigidBody>
+
+      {/* 7. Render active stars */}
       {activeStarPos.map((pos, i) => (
         <FloatingStar
           key={i}

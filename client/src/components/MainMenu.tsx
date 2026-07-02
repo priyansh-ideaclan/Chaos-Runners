@@ -1,14 +1,14 @@
 import React, { useEffect } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { audioManager } from '../utils/audioManager';
-import { Sparkles, Trophy, Play, Volume2, VolumeX, Lock, Unlock } from 'lucide-react';
+import { Sparkles, Trophy, Play, Volume2, VolumeX, Unlock } from 'lucide-react';
 
 const LEVEL_NAMES = [
-  'Level 1: Beginner Bounds',
-  'Level 2: Conveyor Crossing',
-  'Level 3: Slippery Slopes',
-  'Level 4: Precise Pendulums',
-  'Level 5: Final Ascent',
+  'Level 1: Race – Beginner Bounds',
+  'Level 2: Survival – Spinning Arena',
+  'Level 3: Memory – Tile Showdown',
+  'Level 4: Hunt – Star Collector',
+  'Level 5: Final – Crown Peak Climb',
 ];
 
 const COLORS = [
@@ -126,18 +126,16 @@ export const MainMenu: React.FC = () => {
         {/* Level Progression Section */}
         <div>
           <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', fontWeight: 800, display: 'block', marginBottom: '8px' }}>
-            Select Level ({maxLevelUnlocked + 1} / 5 Unlocked)
+            Select Level
           </span>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {LEVEL_NAMES.map((name, idx) => {
-              const isLocked = idx > maxLevelUnlocked;
               const isSelected = idx === currentLevelIndex;
 
               return (
                 <button
                   key={idx}
                   onClick={() => handleLevelClick(idx)}
-                  disabled={isLocked}
                   className="btn-secondary"
                   style={{
                     display: 'flex',
@@ -146,8 +144,7 @@ export const MainMenu: React.FC = () => {
                     padding: '8px 12px',
                     fontSize: '0.85rem',
                     textAlign: 'left',
-                    opacity: isLocked ? 0.4 : 1,
-                    cursor: isLocked ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                     borderColor: isSelected ? 'var(--secondary)' : 'var(--glass-border)',
                     background: isSelected ? 'rgba(0, 229, 255, 0.08)' : 'var(--glass-bg)',
                   }}
@@ -155,7 +152,7 @@ export const MainMenu: React.FC = () => {
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: isSelected ? 800 : 500 }}>
                     {isSelected ? '▶ ' : ''}{name}
                   </span>
-                  {isLocked ? <Lock size={12} color="rgba(255,255,255,0.5)" /> : <Unlock size={12} color="var(--secondary)" />}
+                  <Unlock size={12} color="var(--secondary)" />
                 </button>
               );
             })}

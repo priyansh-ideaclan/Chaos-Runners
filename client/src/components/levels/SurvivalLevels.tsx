@@ -10,6 +10,8 @@ export const Survival1: React.FC = () => {
   const timeElapsed = useGameStore((state) => state.timeElapsed);
   const theme = useGameStore((state) => state.visualTheme);
   const config = getThemeConfig(theme);
+  const eliminateRacer = useGameStore((state) => state.eliminateRacer);
+  const phase = useGameStore((state) => state.phase);
 
   const sweeperRbRef = useRef<RapierRigidBody>(null);
   const startRotation = useRef(0);
@@ -27,6 +29,19 @@ export const Survival1: React.FC = () => {
     const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), startRotation.current);
     rb.setNextKinematicRotation(q);
   });
+
+  // Kill zone sensor callback — eliminate whoever falls below the arena
+  const handleKillZone = (event: any) => {
+    if (phase !== 'PLAYING') return;
+    const rb = event.rigidBodyObject;
+    if (!rb) return;
+    if (rb.name === 'player') {
+      eliminateRacer('player');
+    } else if (rb.name === 'bot') {
+      const botId = rb.userData?.id;
+      if (botId) eliminateRacer(botId);
+    }
+  };
 
   return (
     <group name="survival_1">
@@ -63,6 +78,16 @@ export const Survival1: React.FC = () => {
         <ringGeometry args={[8.5, 9.2, 24]} />
         <meshStandardMaterial color={config.accentColor} roughness={0.4} />
       </mesh>
+
+      {/* KILL ZONE — wide sensor below the arena, eliminates anyone who falls */}
+      <RigidBody type="fixed" colliders={false}>
+        <CuboidCollider
+          args={[30, 0.5, 30]}
+          position={[0, -3.5, 0]}
+          sensor
+          onIntersectionEnter={handleKillZone}
+        />
+      </RigidBody>
     </group>
   );
 };

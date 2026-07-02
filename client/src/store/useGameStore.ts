@@ -141,6 +141,55 @@ const LOGIC_LEVELS = ['logic_1', 'logic_2'];
 const HUNT_LEVELS = ['hunt_1'];
 const FINAL_LEVELS = ['final_1', 'final_2'];
 
+// Fixed 5-round tournament progression
+// Round: 1=Race, 2=Survival, 3=Logic, 4=Hunt, 5=Final
+const ROUND_PROGRESSION: Array<{
+  levelId: string;
+  type: LevelType;
+  objective: string;
+  qualifyLimit: number;
+  timeLimit: number;
+}> = [
+  {
+    levelId: 'race_1',
+    type: 'RACE',
+    objective: 'Reach the finish line before slots fill up!',
+    qualifyLimit: 8,
+    timeLimit: 0,
+  },
+  {
+    levelId: 'survival_1',
+    type: 'SURVIVAL',
+    objective: 'Stay alive on the spinning arena! Don\u0027t fall off!',
+    qualifyLimit: 6,
+    timeLimit: 30,
+  },
+  {
+    levelId: 'logic_1',
+    type: 'LOGIC',
+    objective: 'Stand on the correct color tile before the wrong ones drop!',
+    qualifyLimit: 4,
+    timeLimit: 42,
+  },
+  {
+    levelId: 'hunt_1',
+    type: 'HUNT',
+    objective: 'Collect the most stars — top 3 advance to the Final!',
+    qualifyLimit: 3,
+    timeLimit: 35,
+  },
+  {
+    levelId: 'final_2',
+    type: 'FINAL',
+    objective: 'Climb to the summit and grab the Crown — last one standing wins!',
+    qualifyLimit: 1,
+    timeLimit: 0,
+  },
+];
+
+// Map legacy level select index (0-4) to unique mode level IDs
+const CAMPAIGN_LEVEL_IDS = ['race_1', 'survival_1', 'logic_1', 'hunt_1', 'final_2'];
+
 export const useGameStore = create<GameState>((set, get) => ({
   phase: 'MENU',
   startTime: null,
@@ -177,7 +226,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // Legacy campaign defaults
   currentLevelIndex: 0,
-  maxLevelUnlocked: Math.round(getStoredNumber('chaorunners_max_unlocked', 0)),
+  maxLevelUnlocked: 4, // DEV: all levels unlocked for testing
   qualifiedBots: [],
   eliminatedBots: [],
 
@@ -342,56 +391,35 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { currentRound, winnersList, activeBots } = get();
     const nextRound = currentRound + 1;
 
-    // Filter surviving bots to only those who qualified
+    // Filter surviving bots to only those who qualified this round
     const nextBots = activeBots.filter((bot) => winnersList.includes(bot.id));
 
-    let nextLevelId = 'race_2';
-    let nextType: LevelType = 'RACE';
-    let nextObjective = 'Reach the finish line!';
-    let nextLimit = 6;
-    let timeLimit = 0;
+    // Look up the fixed round configuration (rounds are 1-indexed; array is 0-indexed)
+    const roundConfig = ROUND_PROGRESSION[nextRound - 1];
 
-    if (nextRound === 2) {
-      // Round 2: Survival or Hunt
-      const options = Math.random() < 0.5 ? SURVIVAL_LEVELS : HUNT_LEVELS;
-      nextLevelId = options[Math.floor(Math.random() * options.length)];
-      nextType = nextLevelId.startsWith('survival') ? 'SURVIVAL' : 'HUNT';
-      nextObjective = nextType === 'SURVIVAL' ? 'Survive until the timer runs out!' : 'Collect stars to rank in top 6!';
-      nextLimit = 6; // Top 6 qualify
-      timeLimit = nextType === 'SURVIVAL' ? 25 : 30; // 25s for survival, 30s for hunt
-    } else if (nextRound === 3) {
-      // Round 3: Logic or Hunt
-      const options = Math.random() < 0.5 ? LOGIC_LEVELS : HUNT_LEVELS;
-      nextLevelId = options[Math.floor(Math.random() * options.length)];
-      nextType = nextLevelId.startsWith('logic') ? 'LOGIC' : 'HUNT';
-      nextObjective = nextType === 'LOGIC' ? 'Avoid the fake blocks when the timer ends!' : 'Collect stars to rank in top 4!';
-      nextLimit = 4; // Top 4 qualify
-      timeLimit = nextType === 'LOGIC' ? 30 : 30;
-    } else if (nextRound === 4) {
-      // Round 4: Final
-      nextLevelId = FINAL_LEVELS[Math.floor(Math.random() * FINAL_LEVELS.length)];
-      nextType = 'FINAL';
-      nextObjective = nextLevelId === 'final_1' ? 'Be the last survivor standing!' : 'Climb to the summit and grab the crown!';
-      nextLimit = 1; // 1 Winner
-      timeLimit = nextLevelId === 'final_1' ? 40 : 0; // Honeycomb is time-limited survival
+    // If no more rounds defined, it's already the end — shouldn't happen normally
+    if (!roundConfig) {
+      set({ phase: 'VICTORY', wins: get().wins + 1 });
+      return;
     }
 
     const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
-    const spawnPoint = SPAWN_POINTS[nextLevelId] || [0, 4, 0];
+    const spawnPoint = SPAWN_POINTS[roundConfig.levelId] || [0, 4, 0];
 
     set({
       currentRound: nextRound,
-      currentLevelId: nextLevelId,
-      currentLevelType: nextType,
-      roundObjective: nextObjective,
-      botQualifyingLimit: nextLimit,
-      roundTimeLimit: timeLimit,
-      roundTimer: timeLimit,
+      currentLevelId: roundConfig.levelId,
+      currentLevelType: roundConfig.type,
+      roundObjective: roundConfig.objective,
+      botQualifyingLimit: roundConfig.qualifyLimit,
+      roundTimeLimit: roundConfig.timeLimit,
+      roundTimer: roundConfig.timeLimit,
       activeBots: nextBots,
       playerQualified: false,
       winnersList: [],
       scores: {},
       racerProgress: {},
+      eliminatedBots: [],
       lastCheckpoint: spawnPoint,
       visualTheme: theme,
       levelSeed: Math.random(),
@@ -530,8 +558,8 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   startGame: () => {
     const levelIdx = get().currentLevelIndex;
-    const raceLevels = ['race_1', 'race_2', 'race_3', 'race_1', 'race_2'];
-    const levelId = raceLevels[levelIdx] || 'race_1';
+    const levelId = CAMPAIGN_LEVEL_IDS[levelIdx] || 'race_1';
+    const roundConfig = ROUND_PROGRESSION[levelIdx] || ROUND_PROGRESSION[0];
     const nextTheme = THEMES[levelIdx % THEMES.length] || 'SKY_BLUE';
     const nextSeed = Math.random();
     const spawnPoint = SPAWN_POINTS[levelId] || [0, 4, 0];
@@ -553,13 +581,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       phase: 'PLAYING',
       tournamentActive: false,
       currentLevelId: levelId,
-      currentLevelType: 'RACE',
-      roundObjective: 'Reach the finish line!',
-      botQualifyingLimit: 8,
+      currentLevelType: roundConfig.type,
+      roundObjective: roundConfig.objective,
+      botQualifyingLimit: roundConfig.qualifyLimit,
+      roundTimeLimit: roundConfig.timeLimit,
+      roundTimer: roundConfig.timeLimit,
       playerQualified: false,
       winnersList: [],
       scores: {},
       racerProgress: {},
+      eliminatedBots: [],
       lastCheckpoint: spawnPoint,
       visualTheme: nextTheme,
       levelSeed: nextSeed,
@@ -571,10 +602,10 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   selectLevel: (index) => {
     const sanitizedIndex = Math.max(0, Math.min(4, index));
-    const raceLevels = ['race_1', 'race_2', 'race_3', 'race_1', 'race_2']; // Map indices to valid level ids
+    const levelId = CAMPAIGN_LEVEL_IDS[sanitizedIndex] || 'race_1';
     set({ 
       currentLevelIndex: sanitizedIndex,
-      currentLevelId: raceLevels[sanitizedIndex] || 'race_1'
+      currentLevelId: levelId,
     });
   },
 
