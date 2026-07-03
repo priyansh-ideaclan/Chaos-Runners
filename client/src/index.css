@@ -193,3 +193,38 @@ body, html {
   90% { transform: scale(1.0); opacity: 1; }
   100% { transform: scale(1.2); opacity: 0; }
 }
+
+/* Now Playing banner overlay animation */
+@keyframes slide-in-now-playing {
+  0% {
+    transform: translateX(120%) scale(0.9);
+    opacity: 0;
+  }
+  70% {
+    transform: translateX(-10px) scale(1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.now-playing-banner {
+  animation: slide-in-now-playing 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Vinyl Record Spin Animation */
+@keyframes spin-vinyl {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.now-playing-vinyl-spin {
+  animation: spin-vinyl 4s linear infinite;
+  animation-play-state: paused;
+}
+
+.now-playing-vinyl-spin.active-spin {
+  animation-play-state: running;
+}

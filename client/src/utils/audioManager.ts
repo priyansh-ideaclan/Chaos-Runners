@@ -1,4 +1,5 @@
 import { useGameStore } from '../store/useGameStore';
+import { musicManager } from './musicManager';
 
 class AudioManager {
   private ctx: AudioContext | null = null;
@@ -118,32 +119,11 @@ class AudioManager {
   // --- BACKGROUND MUSIC CHIPTUNE LOOP ---
   public startMusic() {
     this.resumeContext();
-    if (this.isMusicPlaying || !this.ctx) return;
-
-    this.isMusicPlaying = true;
-    this.currentStep = 0;
-    
-    let nextNoteTime = this.ctx.currentTime;
-
-    const scheduler = () => {
-      while (nextNoteTime < this.ctx!.currentTime + 0.1) {
-        const stepDuration = 60 / this.bpm / 2; // 8th notes (BPM / 120 steps/s)
-        this.scheduleSequencerStep(this.currentStep, nextNoteTime);
-        nextNoteTime += stepDuration;
-        this.currentStep = (this.currentStep + 1) % 32;
-      }
-    };
-
-    // Poll scheduler
-    this.sequencerIntervalId = window.setInterval(scheduler, 25);
+    musicManager.init();
   }
 
   public stopMusic() {
-    if (this.sequencerIntervalId) {
-      clearInterval(this.sequencerIntervalId);
-      this.sequencerIntervalId = null;
-    }
-    this.isMusicPlaying = false;
+    // Background music is global and continuous, so we do not stop it when changing levels
   }
 
   private scheduleSequencerStep(step: number, time: number) {
@@ -337,6 +317,7 @@ class AudioManager {
 
   public playCountdown() {
     this.resumeContext();
+    musicManager.duckMusic(0.2, 1000);
     if (!this.ctx || !this.sfxGain) return;
 
     const osc = this.ctx.createOscillator();
@@ -357,6 +338,7 @@ class AudioManager {
 
   public playMatchStart() {
     this.resumeContext();
+    musicManager.duckMusic(0.3, 1000);
     if (!this.ctx || !this.sfxGain) return;
 
     const osc = this.ctx.createOscillator();
@@ -377,6 +359,7 @@ class AudioManager {
 
   public playVictory() {
     this.resumeContext();
+    musicManager.duckMusic(0.15, 5000);
     if (!this.ctx || !this.sfxGain) return;
 
     // Upward chiptune arpeggio
@@ -402,6 +385,7 @@ class AudioManager {
 
   public playDefeat() {
     this.resumeContext();
+    musicManager.duckMusic(0.2, 4000);
     if (!this.ctx || !this.sfxGain) return;
 
     // Downward sad chime

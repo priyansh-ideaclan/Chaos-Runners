@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { Sparkles, ArrowRight, User } from 'lucide-react';
+import { musicManager } from '../utils/musicManager';
 
 /** Validates a player name: 3-15 chars, at least one letter/number */
 function validateName(raw: string): string | null {
@@ -36,6 +37,9 @@ export const PlayerNameEntry: React.FC = () => {
     }
     setError(null);
     setPlayerName(input.trim());
+    
+    // Start music directly on user interaction (resolves autoplay block)
+    musicManager.init();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

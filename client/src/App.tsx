@@ -3,6 +3,7 @@ import { GameCanvas } from './components/GameCanvas';
 import { MainMenu } from './components/MainMenu';
 import { HUD } from './components/HUD';
 import { PlayerNameEntry } from './components/PlayerNameEntry';
+import { NowPlayingOverlay } from './components/NowPlayingOverlay';
 
 const App: React.FC = () => {
   return (
@@ -17,6 +18,7 @@ const App: React.FC = () => {
 
         <MainMenu />
         <HUD />
+        <NowPlayingOverlay />
       </div>
     </div>
   );

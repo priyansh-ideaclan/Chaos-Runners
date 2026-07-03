@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { Timer, Trophy, RotateCcw, Home, HelpCircle, Volume2, VolumeX, Sparkles, Shield, Zap, Star, Brain, Target, Users, Crown } from 'lucide-react';
+import { Timer, Trophy, RotateCcw, Home, HelpCircle, Volume2, VolumeX, Sparkles, Shield, Zap, Star, Brain, Target, Users, Crown, Music, SkipBack, SkipForward, Play, Pause } from 'lucide-react';
 import { RaceLeaderboard } from './RaceLeaderboard';
 import { audioManager } from '../utils/audioManager';
+import { musicManager } from '../utils/musicManager';
+import { useMusicStore } from '../store/useMusicStore';
 
 // ─── Level display names ──────────────────────────────────────────────────────
 const LEVEL_NAMES: Record<string, string> = {
@@ -69,10 +71,42 @@ export const HUD: React.FC = () => {
     cinematicActive,
     setCinematicActive,
   } = useGameStore();
+  const {
+    playlist,
+    currentTrackIndex,
+    isPlaying,
+    enableMusic,
+    setPlaying,
+  } = useMusicStore();
+
+  const currentTrack = playlist[currentTrackIndex];
 
   const [fps, setFps] = useState(60);
   const [introCountdown, setIntroCountdown] = useState(3);
   const [outcomeCountdown, setOutcomeCountdown] = useState(5);
+
+  // Keyboard shortcut listener for BGM controls during gameplay
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (phase !== 'PLAYING') return;
+
+      // Skip shortcuts if typing in any text inputs
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      if (e.key === '[') {
+        musicManager.skipToPrev();
+      } else if (e.key === ']') {
+        musicManager.skipToNext();
+      } else if (e.key === 'm' || e.key === 'M') {
+        useMusicStore.getState().setEnableMusic(!useMusicStore.getState().enableMusic);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [phase]);
 
   // Tick the stopwatch/timer if playing
   useEffect(() => {
@@ -535,16 +569,53 @@ export const HUD: React.FC = () => {
       {/* ── BOTTOM HUD: controls + leave button ──────────────────────────── */}
       {phase === 'PLAYING' && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%', pointerEvents: 'none' }}>
-          <div className="glass-panel" style={{ padding: '12px 18px', fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', display: 'flex', gap: '14px', alignItems: 'center', border: '1px solid var(--glass-border)' }}>
-            <HelpCircle size={15} color="var(--secondary)" />
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <span><strong>WASD</strong> Move</span>
-              <span><strong>Space</strong> Jump</span>
-              <span><strong>Shift</strong> Dive</span>
-              <span><strong>E</strong> Grab</span>
-              <span><strong>Click</strong> Look</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', pointerEvents: 'auto' }}>
+            {/* Movement Controls Panel */}
+            <div className="glass-panel" style={{ padding: '12px 18px', fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', display: 'flex', gap: '14px', alignItems: 'center', border: '1px solid var(--glass-border)' }}>
+              <HelpCircle size={15} color="var(--secondary)" />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <span><strong>WASD</strong> Move</span>
+                <span><strong>Space</strong> Jump</span>
+                <span><strong>Shift</strong> Dive</span>
+                <span><strong>E</strong> Grab</span>
+                <span><strong>Click</strong> Look</span>
+              </div>
+            </div>
+
+            {/* In-Game Music Radio Widget */}
+            <div className="glass-panel" style={{ padding: '8px 14px', display: 'flex', gap: '12px', alignItems: 'center', border: '1px solid var(--glass-border)', fontSize: '0.78rem', color: 'rgba(255,255,255,0.75)' }}>
+              <Music size={14} color="var(--secondary)" />
+              
+              <span style={{ fontWeight: 800, color: 'white', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {currentTrack?.title || 'No Track'}
+              </span>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '8px' }}>
+                <button onClick={() => musicManager.skipToPrev()} className="ui-interactive" style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} title="Previous Song ([)">
+                  <SkipBack size={13} fill="currentColor" />
+                </button>
+                
+                <button onClick={() => setPlaying(!isPlaying)} className="ui-interactive" style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} title={isPlaying && enableMusic ? 'Pause' : 'Play'}>
+                  {isPlaying && enableMusic ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+                </button>
+                
+                <button onClick={() => musicManager.skipToNext()} className="ui-interactive" style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} title="Next Song (])">
+                  <SkipForward size={13} fill="currentColor" />
+                </button>
+                
+                <button onClick={() => useMusicStore.getState().setEnableMusic(!enableMusic)} className="ui-interactive" style={{ background: 'none', border: 'none', color: enableMusic ? 'var(--secondary)' : 'var(--primary)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} title="Mute/Unmute BGM (M)">
+                  {enableMusic ? <Volume2 size={13} /> : <VolumeX size={13} />}
+                </button>
+              </div>
+
+              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '8px', display: 'flex', gap: '6px' }}>
+                <span><strong>[</strong> Prev</span>
+                <span><strong>]</strong> Next</span>
+                <span><strong>M</strong> Mute</span>
+              </div>
             </div>
           </div>
+          
           <button className="ui-interactive btn-secondary" style={{ pointerEvents: 'all', padding: '10px 16px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800 }} onClick={resetTournament}>
             <Home size={14} /> Leave Match
           </button>

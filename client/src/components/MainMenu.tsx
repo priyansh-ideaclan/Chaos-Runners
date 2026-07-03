@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { audioManager } from '../utils/audioManager';
 import { Sparkles, Trophy, Play, Volume2, VolumeX, Unlock } from 'lucide-react';
+import { useMusicStore } from '../store/useMusicStore';
 
 const LEVEL_NAMES = [
   'Level 1: Race – Beginner Bounds',
@@ -21,10 +22,10 @@ const COLORS = [
 ];
 
 const ACCESSORIES = [
-  { id: 'none', name: 'No Accessory' },
-  { id: 'crown', name: 'Golden Crown 👑' },
-  { id: 'party', name: 'Party Cone 🎉' },
-  { id: 'glasses', name: 'Rad Glasses 🕶️' },
+  { id: 'none', name: 'No Hat' },
+  { id: 'crown', name: 'Golden Crown' },
+  { id: 'ears', name: 'Kitty Ears' },
+  { id: 'horns', name: 'Demon Horns' },
 ];
 
 export const MainMenu: React.FC = () => {
@@ -50,12 +51,12 @@ export const MainMenu: React.FC = () => {
     setPlayerName,
   } = useGameStore();
 
-  // Start background music loop on main lobby entry
+  // Start background music loop on main lobby entry (only after player has entered their name)
   useEffect(() => {
-    if (phase === 'MENU') {
+    if (phase === 'MENU' && playerName !== '') {
       audioManager.startMusic();
     }
-  }, [phase]);
+  }, [phase, playerName]);
 
   if (phase !== 'MENU') return null;
 
@@ -68,6 +69,9 @@ export const MainMenu: React.FC = () => {
 
   const handleVolumeChange = (type: 'master' | 'music' | 'sfx', val: number) => {
     setVolume(type, val);
+    if (type === 'master') {
+      useMusicStore.getState().setMasterVolume(val);
+    }
     if (type === 'sfx') {
       audioManager.playClick(); // Play a test click to test volume
     }
@@ -263,7 +267,7 @@ export const MainMenu: React.FC = () => {
             Synthesizer Audio Settings
           </h3>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {/* Master Volume */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
@@ -278,36 +282,6 @@ export const MainMenu: React.FC = () => {
                 value={masterVolume}
                 onChange={(e) => handleVolumeChange('master', parseFloat(e.target.value))}
                 style={{ width: '100%', accentColor: 'var(--secondary)', cursor: 'pointer' }}
-              />
-            </div>
-
-            {/* Music Volume */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
-                <span>Music Volume</span>
-                <button
-                  onClick={() => toggleMute('music')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--secondary)',
-                    fontSize: '0.7rem',
-                    cursor: 'pointer',
-                    padding: 0
-                  }}
-                >
-                  {musicMuted ? 'Unmute BGM 🔇' : 'Mute BGM 🔊'}
-                </button>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="1.0"
-                step="0.05"
-                value={musicVolume}
-                disabled={musicMuted}
-                onChange={(e) => handleVolumeChange('music', parseFloat(e.target.value))}
-                style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer', opacity: musicMuted ? 0.3 : 1 }}
               />
             </div>
 
@@ -340,6 +314,8 @@ export const MainMenu: React.FC = () => {
                 style={{ width: '100%', accentColor: 'var(--yellow)', cursor: 'pointer', opacity: sfxMuted ? 0.3 : 1 }}
               />
             </div>
+
+
           </div>
         </div>
       </div>
