@@ -42,6 +42,9 @@ export const Player: React.FC = () => {
   const isGrabbingRef = useRef(false);
   const jumpCountRef = useRef(0);
   const wasJumpPressedRef = useRef(false);
+  // Knockback states
+  const knockbackTimerRef = useRef(0);
+  const knockbackVelRef = useRef(new THREE.Vector3());
 
   // Sound repeat rate timers
   const slideSoundTimer = useRef(0);
@@ -126,6 +129,23 @@ export const Player: React.FC = () => {
     if (!rigidBody) return;
 
     const pos = rigidBody.translation();
+
+    // Decrement knockback timer and apply knockback velocity if active
+    if (knockbackTimerRef.current > 0) {
+      knockbackTimerRef.current -= delta;
+      const currentVel = rigidBody.linvel();
+      rigidBody.setLinvel({
+        x: knockbackVelRef.current.x,
+        y: currentVel.y,
+        z: knockbackVelRef.current.z
+      }, true);
+      
+      if (visualGroupRef.current) {
+        visualGroupRef.current.rotation.y += delta * 15; // spin when hit!
+      }
+      return;
+    }
+
     const progressValue = getRacerProgressValue(currentLevelId, pos);
 
     // Update live leaderboard progress
@@ -228,6 +248,15 @@ export const Player: React.FC = () => {
       if (mudSoundTimer.current <= 0 && isGroundedRef.current && new THREE.Vector3(rigidBody.linvel().x, 0, rigidBody.linvel().z).length() > 0.4) {
         audioManager.playMudSplat();
         mudSoundTimer.current = 0.22; // Loop mud squelches
+      }
+    } else if (currentSurface === 'speed-ramp') {
+      // Speed ramp surface: slide down with high speed and low control!
+      accelerationRatio = 0.06;
+      moveSpeed = 8.5;
+      slideSoundTimer.current -= delta;
+      if (slideSoundTimer.current <= 0 && isGroundedRef.current) {
+        audioManager.playIceSlide();
+        slideSoundTimer.current = 0.12;
       }
     }
 
@@ -423,6 +452,18 @@ export const Player: React.FC = () => {
       type={phase === 'MENU' ? 'fixed' : 'dynamic'}
       friction={0.6}
       restitution={0.1}
+      onCollisionEnter={(event) => {
+        const other = event.other.rigidBodyObject;
+        if (other && other.name === 'rotating-arm') {
+          const playerPos = rigidBodyRef.current!.translation();
+          const otherPos = other.position;
+          const dir = new THREE.Vector3(playerPos.x - otherPos.x, 0.2, playerPos.z - otherPos.z).normalize();
+          
+          knockbackVelRef.current.copy(dir).multiplyScalar(8.5);
+          knockbackTimerRef.current = 0.45;
+          audioManager.playCollision(); // Play bonk sound effect!
+        }
+      }}
     >
       <CapsuleCollider args={[0.25, 0.24]} />
 

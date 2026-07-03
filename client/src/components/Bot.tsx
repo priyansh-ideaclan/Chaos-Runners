@@ -17,9 +17,28 @@ export interface BotProps {
 
 // Handcrafted navigation node lists for Levels 1-5 & mini-games
 const LEVEL_1_NODES: Array<[number, number, number]> = [
-  [0, 0, 0], [0, 0, 7], [0, 0, 11], [0, 0, 14], [0, 0, 21.5],
-  [0, 0, 25.5], [0, 0, 26.5], [0, 0, 34.5], [0, 0, 37.5], [0, 0, 46.0],
-  [0, 0, 56.5]
+  [0, 0, 0],
+  [0, 0, 5],
+  [0, 0, 10],      // Hurdle 1
+  [-3, 0, 15],     // Left curve transition
+  [-6, 0, 20],     // Hurdle 2
+  [-6, 0, 26],     // Sweeper 1
+  [-6, 0, 32],     // Sweeper 2
+  [-2, 0, 39],     // Right curve transition
+  [4, 0, 44],      // Rope bridge takeoff deck
+  [4, 0, 52],      // Rope bridge midpoint
+  [4, 0, 60],      // Rope bridge landing deck
+  [-2.5, 0, 66],   // Ice/Mud entry transition
+  [-6, 0, 72],     // Ice/Mud end
+  [-6, 0, 80],     // Wind/Fan 1
+  [-6, 0, 88],     // Wind/Fan 2
+  [-2, 0, 93.5],   // Transition split entrance deck
+  [-2, 0, 101],    // Route choice (dynamically adjusted)
+  [-2, 0, 108.5],  // Transition merge exit deck
+  [-2, 0, 117],    // Hammer Arena center
+  [0, 0, 122],     // Near shortcut launch pad
+  [0, -1.0, 134],  // Final sprint mid (on downhill momentum ramp)
+  [0, -1.8, 145.5] // Finish arch (on finish deck)
 ];
 
 const LEVEL_2_NODES: Array<[number, number, number]> = [
@@ -87,6 +106,10 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
   const jumpCooldown = useRef(0);
   const jumpCountRef = useRef(0);
   
+  // Knockback states
+  const knockbackTimerRef = useRef(0);
+  const knockbackVelRef = useRef(new THREE.Vector3());
+  
   // Base running speeds
   const botSpeed = useRef(difficulty === 'EASY' ? 3.5 : difficulty === 'MEDIUM' ? 4.2 : 4.9);
 
@@ -98,6 +121,7 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       botLastCheckpoint.current = spawnPos;
       jumpCooldown.current = 0;
       stuckTimeRef.current = 0;
+      knockbackTimerRef.current = 0;
       lastPosRef.current.set(spawnPos[0], spawnPos[1], spawnPos[2]);
       
       const widthSpread = difficulty === 'EASY' ? 1.4 : difficulty === 'MEDIUM' ? 0.7 : 0.2;
@@ -131,6 +155,22 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
 
     const pos = rb.translation();
 
+    // Decrement knockback timer and apply knockback velocity if active
+    if (knockbackTimerRef.current > 0) {
+      knockbackTimerRef.current -= delta;
+      const currentVel = rb.linvel();
+      rb.setLinvel({
+        x: knockbackVelRef.current.x,
+        y: currentVel.y,
+        z: knockbackVelRef.current.z
+      }, true);
+      
+      if (visualGroupRef.current) {
+        visualGroupRef.current.rotation.y += delta * 15; // spin when hit!
+      }
+      return;
+    }
+
     const progressValue = getRacerProgressValue(currentLevelId, pos);
 
     // Report live leaderboard progress
@@ -154,7 +194,10 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
 
     // Checkpoint updates based on positions
     if (currentLevelId === 'race_1') {
-      if (pos.z > 32 && botLastCheckpoint.current[2] < 32) botLastCheckpoint.current = [0, 1.2, 35.5];
+      if (pos.z > 32 && botLastCheckpoint.current[2] < 32) botLastCheckpoint.current = [-6, 1.2, 35];
+      if (pos.z > 58 && botLastCheckpoint.current[2] < 58) botLastCheckpoint.current = [4, 1.2, 60];
+      if (pos.z > 86 && botLastCheckpoint.current[2] < 86) botLastCheckpoint.current = [-6, 1.2, 88];
+      if (pos.z > 118 && botLastCheckpoint.current[2] < 118) botLastCheckpoint.current = [0, 1.2, 120];
     } else if (currentLevelId === 'race_2') {
       if (pos.z > 43 && botLastCheckpoint.current[2] < 43) botLastCheckpoint.current = [0, 1.2, 45.5];
       if (pos.z > 78 && botLastCheckpoint.current[2] < 78) botLastCheckpoint.current = [0, 5.2, 80];
@@ -238,6 +281,9 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
     } else if (currentSurface === 'mud') {
       activeSpeed *= 0.45;
       jumpImpulse = 3.2;
+    } else if (currentSurface === 'speed-ramp') {
+      accelerationRatio = 0.06;
+      activeSpeed *= 1.8;
     }
 
     // Natural hesitation slowdown before gap jumps for Easy/Medium bots
@@ -281,6 +327,20 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
 
       if (targetNode) {
         const targetPos = new THREE.Vector3(...targetNode).add(targetOffset.current);
+        
+        // Dynamically adjust Route Choice on node 16 (which is index 16)
+        if (currentLevelId === 'race_1' && currentNodeIndex.current === 16) {
+          if (difficulty === 'HARD') {
+            targetPos.x = -6.0; // Narrow beam shortcut
+          } else if (difficulty === 'EASY') {
+            targetPos.x = 4.0;  // Wide safe path
+          } else {
+            // Medium bots decide based on bot ID
+            const botIdx = parseInt(id.replace('bot_', '')) || 0;
+            targetPos.x = botIdx % 2 === 0 ? -6.0 : 4.0;
+          }
+        }
+
         const dist = new THREE.Vector3(pos.x, pos.y, pos.z).distanceTo(targetPos);
 
         if (dist < 1.3 && currentNodeIndex.current < pathNodes.length - 1) {
@@ -522,7 +582,20 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
     lastPosRef.current.set(pos.x, pos.y, pos.z);
 
     // E. Level-Specific Jump Triggers (e.g. Launch pads)
-    if (currentLevelId === 'race_2') {
+    if (currentLevelId === 'race_1') {
+      // Hurdle 1 at [0, 0.25, 10]
+      if (pos.z > 8.2 && pos.z < 10.8 && jumpCooldown.current <= 0) {
+        shouldJump = true;
+      }
+      // Hurdle 2 at [-6, 0.25, 20]
+      if (pos.z > 18.2 && pos.z < 20.8 && jumpCooldown.current <= 0) {
+        shouldJump = true;
+      }
+      // Bounce pad shortcut at [2.5, 0.05, 120]
+      if (pos.z > 118.2 && pos.z < 120.8 && pos.x > 1.0 && jumpCooldown.current <= 0) {
+        shouldJump = true;
+      }
+    } else if (currentLevelId === 'race_2') {
       if (pos.z > 69.5 && pos.z < 72.5 && Math.abs(pos.x) < 1.0 && jumpCooldown.current <= 0) {
         shouldJump = true;
       }
@@ -617,6 +690,17 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       friction={0.6}
       restitution={0.1}
       userData={{ id }}
+      onCollisionEnter={(event) => {
+        const other = event.other.rigidBodyObject;
+        if (other && other.name === 'rotating-arm') {
+          const botPos = rigidBodyRef.current!.translation();
+          const otherPos = other.position;
+          const dir = new THREE.Vector3(botPos.x - otherPos.x, 0.2, botPos.z - otherPos.z).normalize();
+          
+          knockbackVelRef.current.copy(dir).multiplyScalar(8.5);
+          knockbackTimerRef.current = 0.45;
+        }
+      }}
     >
       <CapsuleCollider args={[0.25, 0.24]} />
 

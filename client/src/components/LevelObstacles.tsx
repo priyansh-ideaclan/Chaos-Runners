@@ -437,29 +437,31 @@ export const PendulumHammer: React.FC<{ position: [number, number, number]; leng
     rb.setNextKinematicRotation(q);
   });
 
+  // Top axle sits at position + length. We offset group position to pivot point
+  // and child coordinates down from the pivot.
   return (
-    <group position={position}>
-      {/* Supporting top axle mounting */}
-      <mesh position={[0, length, 0]}>
+    <group position={[position[0], position[1] + length, position[2]]}>
+      {/* Supporting top axle mounting at pivot point */}
+      <mesh position={[0, 0, 0]}>
         <boxGeometry args={[0.5, 0.2, 0.5]} />
         <meshStandardMaterial color="#222" />
       </mesh>
 
       <RigidBody ref={rbRef} type="kinematicPosition" colliders={false} name="rotating-arm">
-        {/* Rod collider */}
-        <CuboidCollider args={[0.08, length / 2, 0.08]} position={[0, length / 2, 0]} />
-        {/* Hammer head weight collider */}
-        <CuboidCollider args={[0.45, 0.35, 0.45]} position={[0, 0.2, 0]} />
+        {/* Rod collider - hanging down from pivot */}
+        <CuboidCollider args={[0.08, length / 2, 0.08]} position={[0, -length / 2, 0]} />
+        {/* Hammer head weight collider - at the bottom */}
+        <CuboidCollider args={[0.55, 0.4, 0.55]} position={[0, -length + 0.3, 0]} />
 
         {/* Visual rod */}
-        <mesh position={[0, length / 2, 0]} castShadow>
+        <mesh position={[0, -length / 2, 0]} castShadow>
           <cylinderGeometry args={[0.05, 0.05, length, 8]} />
           <meshStandardMaterial color="#777" roughness={0.4} />
         </mesh>
         
         {/* Visual hammer head */}
-        <mesh position={[0, 0.2, 0]} castShadow>
-          <boxGeometry args={[0.8, 0.6, 0.8]} />
+        <mesh position={[0, -length + 0.3, 0]} castShadow>
+          <boxGeometry args={[1.0, 0.7, 1.0]} />
           <meshStandardMaterial color={color} roughness={0.2} emissive={color} emissiveIntensity={0.15} />
         </mesh>
       </RigidBody>

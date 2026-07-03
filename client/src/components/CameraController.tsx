@@ -272,12 +272,31 @@ export const CameraController: React.FC = () => {
       const flyLookAt = new THREE.Vector3();
 
       if (currentLevelId === 'race_1') {
-        // Fly backwards from finish line to start line down the track
-        const zPos = 56.5 * (1 - t) - 5 * t;
-        const yPos = 7 * (1 - t) + 3.8 * t;
-        const xPos = 2.0 * Math.sin(t * Math.PI * 2);
-        flyCamPos.set(xPos, yPos, zPos);
-        flyLookAt.set(0, 1.0, zPos + 8 * (1 - t) - 4 * t);
+        // Fly backwards from finish line (Z = 145) to start line (Z = -5)
+        const zPos = 145.0 * (1 - t) - 5.0 * t;
+        const yPos = 8.5 * (1 - t) + 3.8 * t;
+        
+        let xPos = 0;
+        if (zPos > 120) {
+          xPos = 0;
+        } else if (zPos > 106) {
+          xPos = -3 * ((zPos - 106) / 14); // transition from -6 to 0
+        } else if (zPos > 72) {
+          xPos = -6; // Wind zone and balance beam
+        } else if (zPos > 60) {
+          xPos = -6 + (12 - (zPos - 60)) * 10/12; // transition
+        } else if (zPos > 44) {
+          xPos = 4; // Moving platforms
+        } else if (zPos > 32) {
+          xPos = -6 + ((zPos - 32) / 12) * 10; // transition from -6 to 4
+        } else if (zPos > 15) {
+          xPos = -6; // Hurdle 2 & sweepers
+        } else {
+          xPos = -6 * (zPos / 15); // transition from 0 to -6
+        }
+
+        flyCamPos.set(xPos, yPos + 3.5, zPos);
+        flyLookAt.set(xPos, yPos, zPos + 10.0 * (1 - t) - 4.0 * t);
       } else if (currentLevelId === 'survival_1') {
         // Full circular orbit panning down
         const angle = t * Math.PI * 1.5;
