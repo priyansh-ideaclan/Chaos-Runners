@@ -186,10 +186,16 @@ export const MainMenu: React.FC = () => {
             </div>
           </div>
 
-          <button className="btn-primary" onClick={startTournament} style={{ width: '100%', justifyContent: 'center', padding: '10px' }}>
-            <Play size={18} fill="white" />
-            Launch Tournament
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button className="btn-primary" onClick={startGame} style={{ width: '100%', justifyContent: 'center', padding: '10px', background: 'var(--primary)' }}>
+              <Play size={18} fill="white" />
+              Start Game
+            </button>
+            <button className="btn-secondary" onClick={startTournament} style={{ width: '100%', justifyContent: 'center', padding: '10px', borderColor: 'var(--secondary)' }}>
+              <Trophy size={18} color="var(--secondary)" />
+              Launch Tournament
+            </button>
+          </div>
         </div>
       </div>
 

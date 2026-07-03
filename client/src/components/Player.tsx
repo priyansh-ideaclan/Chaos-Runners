@@ -47,9 +47,9 @@ export const Player: React.FC = () => {
   const slideSoundTimer = useRef(0);
   const mudSoundTimer = useRef(0);
 
-  // Reset player position when match starts
+  // Reset player position when match starts or in round intro
   useEffect(() => {
-    if (phase === 'PLAYING' && rigidBodyRef.current && lastCheckpoint) {
+    if ((phase === 'ROUND_INTRO' || phase === 'PLAYING') && rigidBodyRef.current && lastCheckpoint) {
       rigidBodyRef.current.setTranslation(new THREE.Vector3(...lastCheckpoint), true);
       rigidBodyRef.current.setLinvel(new THREE.Vector3(0, 0, 0), true);
       rigidBodyRef.current.setAngvel(new THREE.Vector3(0, 0, 0), true);
@@ -57,9 +57,34 @@ export const Player: React.FC = () => {
       diveTimerRef.current = 0;
       diveCooldownRef.current = 0;
       isGrabbingRef.current = false;
-      audioManager.playMatchStart();
+      if (phase === 'PLAYING') {
+        audioManager.playMatchStart();
+      }
     }
   }, [phase, lastCheckpoint]);
+
+  // Teleport player during MENU phase when selected level changes
+  useEffect(() => {
+    const SPAWN_POINTS: Record<string, [number, number, number]> = {
+      'race_1': [0, 4, 0],
+      'race_2': [0, 4, 0],
+      'race_3': [0, 4, 0],
+      'survival_1': [0, 4, 0],
+      'survival_2': [0, 4, 0],
+      'logic_1': [0, 2.5, -5.8],
+      'logic_2': [0, 4, 0],
+      'hunt_1': [0, 4, 0],
+      'final_1': [0, 10, 0],
+      'final_2': [0, 4, 0],
+    };
+
+    if (phase === 'MENU' && rigidBodyRef.current) {
+      const spawnPoint = SPAWN_POINTS[currentLevelId] || [0, 4, 0];
+      rigidBodyRef.current.setTranslation(new THREE.Vector3(...spawnPoint), true);
+      rigidBodyRef.current.setLinvel(new THREE.Vector3(0, 0, 0), true);
+      rigidBodyRef.current.setAngvel(new THREE.Vector3(0, 0, 0), true);
+    }
+  }, [phase, currentLevelId]);
 
   // Phase change sound triggers
   const lastPhase = useRef(phase);
@@ -395,6 +420,7 @@ export const Player: React.FC = () => {
       enabledRotations={[false, false, false]}
       name="player"
       position={[0, 4, 0]}
+      type={phase === 'MENU' ? 'fixed' : 'dynamic'}
       friction={0.6}
       restitution={0.1}
     >

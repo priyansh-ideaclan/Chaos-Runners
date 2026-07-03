@@ -54,6 +54,7 @@ interface GameState {
   activeBots: BotRacer[]; // Surviving bots in the tournament
   botQualifyingLimit: number;
   playerQualified: boolean;
+  cinematicActive: boolean;
 
   // Legacy campaign variables
   currentLevelIndex: number;
@@ -75,6 +76,7 @@ interface GameState {
 
   // Actions
   setPhase: (phase: GamePhase) => void;
+  setCinematicActive: (active: boolean) => void;
   setPlayerName: (name: string) => void;
   updateCustomization: (customization: Partial<PlayerCustomization>) => void;
   updateRacerProgress: (progress: RacerProgress) => void;
@@ -115,7 +117,7 @@ const SPAWN_POINTS: Record<string, [number, number, number]> = {
   'survival_1': [0, 4, 0],
   'survival_2': [0, 4, 0],
   // Logic Levels
-  'logic_1': [0, 4, 0],
+  'logic_1': [0, 2.5, -5.8],
   'logic_2': [0, 4, 0],
   // Hunt Levels
   'hunt_1': [0, 4, 0],
@@ -219,6 +221,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   activeBots: [],
   botQualifyingLimit: 8,
   playerQualified: false,
+  cinematicActive: false,
 
   levelSeed: 0.5,
   visualTheme: 'SKY_BLUE',
@@ -238,6 +241,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   sfxMuted: getStoredBoolean('chaorunners_mute_sfx', false),
 
   setPhase: (phase) => set({ phase }),
+  setCinematicActive: (active) => set({ cinematicActive: active }),
 
   setPlayerName: (name) => {
     const trimmed = name.trim();
@@ -296,6 +300,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       visualTheme: theme,
       levelSeed: Math.random(),
       phase: 'ROUND_INTRO',
+      cinematicActive: true,
       startTime: null,
       timeElapsed: 0,
       roundTimer: 0,
@@ -424,6 +429,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       visualTheme: theme,
       levelSeed: Math.random(),
       phase: 'ROUND_INTRO',
+      cinematicActive: true,
       startTime: null,
       timeElapsed: 0,
     });
@@ -578,7 +584,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     }));
 
     set({
-      phase: 'PLAYING',
+      phase: 'ROUND_INTRO',
+      cinematicActive: true,
       tournamentActive: false,
       currentLevelId: levelId,
       currentLevelType: roundConfig.type,
@@ -594,7 +601,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       lastCheckpoint: spawnPoint,
       visualTheme: nextTheme,
       levelSeed: nextSeed,
-      startTime: Date.now(),
+      startTime: null,
       timeElapsed: 0,
       activeBots: seededBots,
     });

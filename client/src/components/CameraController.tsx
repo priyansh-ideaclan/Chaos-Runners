@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../store/useGameStore';
+import { audioManager } from '../utils/audioManager';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -27,25 +28,34 @@ const MOUSE_SENSITIVITY = 0.0022;
 const PITCH_MIN = -Math.PI / 2.8; // ~64° — look up
 const PITCH_MAX = Math.PI / 5;    // ~36° — look down
 
-/** Duration (seconds) of the cinematic intro hold */
-const INTRO_DURATION = 3.2;
+/** Duration (seconds) of the cinematic flyover intro */
+const FLYOVER_DURATION = 8.0;
 
-/** Duration (seconds) of the blend from intro-cam to follow-cam once PLAYING starts */
-const BLEND_DURATION = 1.5;
+/** Duration (seconds) of the blend from flyover/menu to starting follow-cam position */
+const INTRO_BLEND_DURATION = 1.5;
 
-/**
- * Intro camera:
- *  - positioned behind the starting line at a wide, slightly elevated angle
- *  - faces in the +Z direction (race direction) showing the whole lineup
- */
-const INTRO_CAM_OFFSET = new THREE.Vector3(0, 4.5, -9.0);  // behind & above
-const INTRO_CAM_LOOKAT_OFFSET = new THREE.Vector3(0, 1.0, 6.0); // ahead of player
+/** Starting spawn points fallback lookup (should match useGameStore.ts) */
+const SPAWN_POINTS: Record<string, [number, number, number]> = {
+  'race_1': [0, 4, 0],
+  'race_2': [0, 4, 0],
+  'race_3': [0, 4, 0],
+  'survival_1': [0, 4, 0],
+  'survival_2': [0, 4, 0],
+  'logic_1': [0, 2.5, -5.8],
+  'logic_2': [0, 4, 0],
+  'hunt_1': [0, 4, 0],
+  'final_1': [0, 10, 0],
+  'final_2': [0, 4, 0],
+};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const CameraController: React.FC = () => {
   const { camera, gl } = useThree();
   const phase = useGameStore((state) => state.phase);
+  const currentLevelId = useGameStore((state) => state.currentLevelId);
+  const cinematicActive = useGameStore((state) => state.cinematicActive);
+  const setCinematicActive = useGameStore((state) => state.setCinematicActive);
 
   // ── Mouse-controlled yaw / pitch ──────────────────────────────────────────
   const yaw   = useRef(Math.PI);   // Start facing +Z (race direction)
@@ -54,20 +64,38 @@ export const CameraController: React.FC = () => {
   // ── Pointer lock ──────────────────────────────────────────────────────────
   const isLocked = useRef(false);
 
-  // ── Intro / blend state ───────────────────────────────────────────────────
-  const introTimer  = useRef(0);       // counts up during ROUND_INTRO
-  const blendTimer  = useRef(0);       // counts up during PLAYING blend phase
-  const isBlending  = useRef(false);   // true for first BLEND_DURATION seconds of PLAYING
-  const prevPhase   = useRef<string>('');
+  // ── Cinematic flyover & Blend states ──────────────────────────────────────
+  const flyoverTimer   = useRef(0);
+  const blendTimer     = useRef(0);
+  const isBlending     = useRef(false);
+  const prevPhase      = useRef<string>('');
+  const prevCinActive  = useRef<boolean>(false);
 
-  // Snapshot of intro-cam position/target at the moment PLAYING starts
+  // Snapshots for smooth blending
   const blendFromPos    = useRef(new THREE.Vector3());
   const blendFromLookAt = useRef(new THREE.Vector3());
 
   // ── Persistent smoothed values for the follow-cam ─────────────────────────
   const smoothCamPos    = useRef(new THREE.Vector3(0, 6, -10));
   const smoothLookAt    = useRef(new THREE.Vector3(0, 1, 0));
-  const smoothYaw       = useRef(Math.PI);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Key bindings to skip the cinematic flyover
+  // ─────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (phase === 'ROUND_INTRO' && useGameStore.getState().cinematicActive) {
+        if (e.code === 'Space' || e.code === 'Escape') {
+          e.preventDefault();
+          audioManager.playClick();
+          setCinematicActive(false);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [phase, setCinematicActive]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Pointer lock setup / teardown
@@ -110,32 +138,36 @@ export const CameraController: React.FC = () => {
   }, [phase, gl.domElement]);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Detect phase transitions
+  // Detect phase / cinematicActive transitions
   // ─────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (phase === 'ROUND_INTRO') {
-      introTimer.current  = 0;
-      isBlending.current  = false;
-      blendTimer.current  = 0;
-      // Reset yaw to face the race direction (+Z)
-      yaw.current   = Math.PI;
-      pitch.current = -0.28;
+    // If entering a new round intro, reset flyover timer
+    if (phase === 'ROUND_INTRO' && prevPhase.current !== 'ROUND_INTRO') {
+      flyoverTimer.current = 0;
+      isBlending.current   = false;
+      blendTimer.current   = 0;
+      yaw.current          = Math.PI;
+      pitch.current        = -0.28;
     }
 
-    if (phase === 'PLAYING' && prevPhase.current === 'ROUND_INTRO') {
-      // Snapshot current camera state for a smooth blend start
+    // When cinematic ends/is skipped, transition smoothly to follow camera
+    if (phase === 'ROUND_INTRO' && !cinematicActive && prevCinActive.current) {
+      // Snapshot current camera position and direction to start the lerp blend
       blendFromPos.current.copy(camera.position);
+
       const lookDir = new THREE.Vector3(0, 0, -1)
         .applyQuaternion(camera.quaternion)
-        .multiplyScalar(5)
+        .multiplyScalar(6)
         .add(camera.position);
       blendFromLookAt.current.copy(lookDir);
+
       isBlending.current = true;
       blendTimer.current = 0;
     }
 
     prevPhase.current = phase;
-  }, [phase]);
+    prevCinActive.current = cinematicActive;
+  }, [phase, cinematicActive, camera]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Main per-frame camera logic
@@ -164,44 +196,131 @@ export const CameraController: React.FC = () => {
       if (closest) targetMesh = closest;
     }
 
-    // World-space position of the target character
     const playerPos = new THREE.Vector3();
     targetMesh.getWorldPosition(playerPos);
 
-    // ── ROUND_INTRO: cinematic locked wide-angle view ──────────────────────
-    if (phase === 'ROUND_INTRO') {
-      introTimer.current = Math.min(introTimer.current + delta, INTRO_DURATION);
+    // ───────────────────────────────────────────────────────────────────────
+    // 1. MENU PHASE: Smooth animated looping previews
+    // ───────────────────────────────────────────────────────────────────────
+    if (phase === 'MENU') {
+      const time = state.clock.getElapsedTime();
+      const menuCamPos = new THREE.Vector3();
+      const menuLookAt = new THREE.Vector3();
 
-      // Slightly orbit the camera horizontally during the intro for drama
-      const orbitAngle = Math.sin(introTimer.current * 0.4) * 0.18; // ±10° sweep
-      const orbitOffset = INTRO_CAM_OFFSET.clone();
-      orbitOffset.applyEuler(new THREE.Euler(0, orbitAngle, 0));
+      if (currentLevelId === 'race_1') {
+        // Showcase hurdles and rotating sweepers
+        const angle = time * 0.15;
+        menuCamPos.set(Math.sin(angle) * 5, 4.2, 8 + Math.cos(angle) * 3);
+        menuLookAt.set(0, 0.8, 12);
+      } else if (currentLevelId === 'survival_1') {
+        // Orbit the rotating sweepers
+        const angle = time * 0.22;
+        menuCamPos.set(Math.sin(angle) * 11, 4.8, Math.cos(angle) * 11);
+        menuLookAt.set(0, 0.5, 0);
+      } else if (currentLevelId === 'logic_1') {
+        // Looking down at the logic grid tiles
+        const angle = time * 0.18;
+        menuCamPos.set(Math.sin(angle) * 6, 5.0, -5.8 + Math.cos(angle) * 6);
+        menuLookAt.set(0, 0, -5.8);
+      } else if (currentLevelId === 'hunt_1') {
+        // Wide circle over the star collections
+        const angle = time * 0.2;
+        menuCamPos.set(Math.sin(angle) * 13, 6.5, Math.cos(angle) * 13);
+        menuLookAt.set(0, 1.0, 0);
+      } else if (currentLevelId === 'final_2') {
+        // Fly down from peak to starting line or vice-versa
+        const zPos = 18 + Math.sin(time * 0.12) * 14;
+        const yPos = 3.5 + (zPos / 48) * 5.0;
+        menuCamPos.set(Math.sin(time * 0.25) * 3.5, yPos + 3.0, zPos - 6.0);
+        menuLookAt.set(0, yPos + 1.0, zPos + 6.0);
+      } else {
+        // Fallback normal orbit
+        const angle = time * 0.15;
+        menuCamPos.set(Math.sin(angle) * 6, 4.5, Math.cos(angle) * 6);
+        menuLookAt.set(0, 1, 0);
+      }
 
-      const introCamTarget = playerPos.clone().add(orbitOffset);
-      const introLookTarget = playerPos.clone().add(INTRO_CAM_LOOKAT_OFFSET);
-
-      // Smooth glide into the intro position (first frame may be far away)
-      camera.position.lerp(introCamTarget, 0.06);
-      smoothCamPos.current.copy(camera.position);
+      // Lerp transition between different menu level selections
+      camera.position.lerp(menuCamPos, 0.05);
 
       const currentLook = new THREE.Vector3(0, 0, -1)
         .applyQuaternion(camera.quaternion)
         .multiplyScalar(5)
         .add(camera.position);
-      currentLook.lerp(introLookTarget, 0.06);
+      currentLook.lerp(menuLookAt, 0.05);
       camera.lookAt(currentLook);
 
-      smoothLookAt.current.copy(introLookTarget);
+      smoothCamPos.current.copy(camera.position);
+      smoothLookAt.current.copy(menuLookAt);
       return;
     }
 
-    // ── PLAYING: blend from intro-cam → follow-cam ────────────────────────
-    if (phase === 'PLAYING' && isBlending.current) {
+    // ───────────────────────────────────────────────────────────────────────
+    // 2. ROUND INTRO FLYOVER: Drone fly-through paths
+    // ───────────────────────────────────────────────────────────────────────
+    if (phase === 'ROUND_INTRO' && cinematicActive) {
+      flyoverTimer.current += delta;
+      
+      // Auto-end flyover
+      if (flyoverTimer.current >= FLYOVER_DURATION) {
+        setCinematicActive(false);
+        return;
+      }
+
+      const t = flyoverTimer.current / FLYOVER_DURATION;
+      const flyCamPos = new THREE.Vector3();
+      const flyLookAt = new THREE.Vector3();
+
+      if (currentLevelId === 'race_1') {
+        // Fly backwards from finish line to start line down the track
+        const zPos = 56.5 * (1 - t) - 5 * t;
+        const yPos = 7 * (1 - t) + 3.8 * t;
+        const xPos = 2.0 * Math.sin(t * Math.PI * 2);
+        flyCamPos.set(xPos, yPos, zPos);
+        flyLookAt.set(0, 1.0, zPos + 8 * (1 - t) - 4 * t);
+      } else if (currentLevelId === 'survival_1') {
+        // Full circular orbit panning down
+        const angle = t * Math.PI * 1.5;
+        flyCamPos.set(Math.sin(angle) * 12, 6.0 - t * 2.0, Math.cos(angle) * 12);
+        flyLookAt.set(0, 0.5, 0);
+      } else if (currentLevelId === 'logic_1') {
+        // Panning over the memory grid
+        const xPos = -6 * (1 - t) + 6 * t;
+        flyCamPos.set(xPos, 5.2, -5.8 + Math.cos(t * Math.PI) * 2.5);
+        flyLookAt.set(0, 0, -5.8);
+      } else if (currentLevelId === 'hunt_1') {
+        // Swoop diagonal corner to corner
+        flyCamPos.set(-11 * (1 - t) + 11 * t, 8.5 - Math.sin(t * Math.PI) * 3.5, -11 * (1 - t) + 11 * t);
+        flyLookAt.set(0, 1.0, 0);
+      } else if (currentLevelId === 'final_2') {
+        // Majestic climb up the incline ramp toward the crown
+        const zPos = t * 48.0;
+        const yPos = (zPos / 48.0) * 7.8;
+        flyCamPos.set(Math.sin(t * Math.PI * 3) * 2.0, yPos + 3.2, zPos - 6.0);
+        flyLookAt.set(0, yPos + 1.2, zPos + 6.0);
+      } else {
+        // Fallback flyover
+        flyCamPos.set(0, 6, -10 + t * 20);
+        flyLookAt.set(0, 1, 0);
+      }
+
+      camera.position.copy(flyCamPos);
+      camera.lookAt(flyLookAt);
+
+      smoothCamPos.current.copy(camera.position);
+      smoothLookAt.current.copy(flyLookAt);
+      return;
+    }
+
+    // ───────────────────────────────────────────────────────────────────────
+    // 3. COUNTDOWN / START BLEND: Smooth camera glide behind player
+    // ───────────────────────────────────────────────────────────────────────
+    if (isBlending.current) {
       blendTimer.current += delta;
-      const t = Math.min(blendTimer.current / BLEND_DURATION, 1);
+      const t = Math.min(blendTimer.current / INTRO_BLEND_DURATION, 1);
       const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // smooth step
 
-      // Compute the follow-cam target right now so we blend toward it
+      // Starting/follow-cam target
       const followTarget = computeFollowCamPos(playerPos, yaw.current, pitch.current);
       const followLook = playerPos.clone().add(new THREE.Vector3(0, 0.5, 0));
 
@@ -220,21 +339,14 @@ export const CameraController: React.FC = () => {
       return;
     }
 
-    // ── PLAYING / QUALIFIED: standard follow-cam ──────────────────────────
+    // ───────────────────────────────────────────────────────────────────────
+    // 4. GAMEPLAY FOLLOW: Standard stable third-person follow
+    // ───────────────────────────────────────────────────────────────────────
 
-    // Auto-rotate yaw to face the direction the player is moving,
-    // but ONLY when the mouse is not controlling the camera (not locked)
-    // and the player is actually moving
+    // Auto-rotate yaw to face direction player is moving when mouse not locked
     if (!isLocked.current) {
-      // Look at the player's forward velocity direction from the physics body
       const playerRB = state.scene.getObjectByName('player');
       if (playerRB) {
-        const wpCurrent = new THREE.Vector3();
-        const wpParent  = new THREE.Vector3();
-        playerRB.getWorldPosition(wpParent);
-        playerMesh.getWorldPosition(wpCurrent);
-
-        // Try to infer movement direction from visual group rotation
         const visualRot = playerMesh.rotation.y;
         const movDir = new THREE.Vector3(
           Math.sin(visualRot),
@@ -243,10 +355,8 @@ export const CameraController: React.FC = () => {
         );
 
         if (movDir.lengthSq() > 0.01) {
-          // Desired yaw: camera faces opposite to movement (behind player)
           const desiredYaw = Math.atan2(movDir.x, movDir.z) + Math.PI;
           let diff = desiredYaw - yaw.current;
-          // Wrap diff to [-π, π]
           while (diff > Math.PI)  diff -= 2 * Math.PI;
           while (diff < -Math.PI) diff += 2 * Math.PI;
           yaw.current += diff * YAW_AUTO_LERP;
@@ -254,16 +364,14 @@ export const CameraController: React.FC = () => {
       }
     }
 
-    // Compute desired follow-cam world position
     const targetCamPos  = computeFollowCamPos(playerPos, yaw.current, pitch.current);
     const targetLookAt  = playerPos.clone().add(new THREE.Vector3(0, 0.5, 0));
 
-    // Floor clip prevention: never let camera go below player + 0.4m
+    // Floor clip prevention
     if (targetCamPos.y < playerPos.y + 0.4) {
       targetCamPos.y = playerPos.y + 0.4;
     }
 
-    // Smooth lerp
     smoothCamPos.current.lerp(targetCamPos, FOLLOW_POS_LERP);
     smoothLookAt.current.lerp(targetLookAt, FOLLOW_LOOK_LERP);
 
@@ -275,17 +383,15 @@ export const CameraController: React.FC = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Helper: compute follow-cam world position from player pos + angles
+// Helper: compute follow-cam position from player pos + angles
 // ─────────────────────────────────────────────────────────────────────────────
 function computeFollowCamPos(
   playerPos: THREE.Vector3,
   yaw: number,
   pitch: number
 ): THREE.Vector3 {
-  // Spherical coordinates: camera orbits behind/above the player
   const x = FOLLOW_DISTANCE * Math.cos(pitch) * Math.sin(yaw);
   const y = FOLLOW_HEIGHT   + FOLLOW_DISTANCE * Math.sin(-pitch);
   const z = FOLLOW_DISTANCE * Math.cos(pitch) * Math.cos(yaw);
-
   return playerPos.clone().add(new THREE.Vector3(x, y, z));
 }

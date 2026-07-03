@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { Timer, Trophy, RotateCcw, Home, HelpCircle, Volume2, VolumeX, Sparkles, Shield, Zap, Star, Brain, Target, Users, Crown } from 'lucide-react';
 import { RaceLeaderboard } from './RaceLeaderboard';
+import { audioManager } from '../utils/audioManager';
 
 // ─── Level display names ──────────────────────────────────────────────────────
 const LEVEL_NAMES: Record<string, string> = {
@@ -65,6 +66,8 @@ export const HUD: React.FC = () => {
     advanceToNextRound,
     resetTournament,
     eliminatedBots,
+    cinematicActive,
+    setCinematicActive,
   } = useGameStore();
 
   const [fps, setFps] = useState(60);
@@ -78,22 +81,44 @@ export const HUD: React.FC = () => {
     return () => clearInterval(interval);
   }, [phase, tick]);
 
-  // Round intro automatic countdown
+  // Adjust background music volume multiplier during ROUND_INTRO cinematic
   useEffect(() => {
-    if (phase !== 'ROUND_INTRO') return;
+    if (phase === 'ROUND_INTRO' && cinematicActive) {
+      audioManager.setMusicVolumeMultiplier(0.3);
+    }
+  }, [phase, cinematicActive]);
+
+  // Round intro automatic countdown (only starts when cinematicActive is false)
+  useEffect(() => {
+    if (phase !== 'ROUND_INTRO' || cinematicActive) return;
     setIntroCountdown(3);
+    
+    // Play first countdown sound immediately and set BGM multiplier to 0.5
+    audioManager.setMusicVolumeMultiplier(0.55);
+    audioManager.playCountdown();
+
     const interval = setInterval(() => {
       setIntroCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
           startRoundGameplay();
+          // Full music volume
+          audioManager.setMusicVolumeMultiplier(1.0);
+          audioManager.playMatchStart();
           return 0;
         }
-        return prev - 1;
+        
+        // Increase intensity as countdown progresses
+        const nextStep = prev - 1;
+        if (nextStep === 2) audioManager.setMusicVolumeMultiplier(0.7);
+        if (nextStep === 1) audioManager.setMusicVolumeMultiplier(0.85);
+
+        audioManager.playCountdown();
+        return nextStep;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [phase, startRoundGameplay]);
+  }, [phase, cinematicActive, startRoundGameplay]);
 
   // Round outcome auto-transition
   useEffect(() => {
@@ -199,7 +224,7 @@ export const HUD: React.FC = () => {
       )}
 
       {/* ── ROUND INTRO OVERLAY ──────────────────────────────────────────── */}
-      {phase === 'ROUND_INTRO' && (
+      {phase === 'ROUND_INTRO' && cinematicActive && (
         <div className="ui-interactive glass-panel pulse-animation" style={{
           margin: 'auto', maxWidth: '540px', width: '92%',
           padding: '48px 40px', textAlign: 'center',
@@ -239,15 +264,54 @@ export const HUD: React.FC = () => {
             {currentLevelType === 'FINAL' && '👑 Climb to the peak and grab the Crown to win the tournament!'}
           </div>
 
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: '88px', height: '88px', borderRadius: '50%',
-            background: `${modeColor}18`, border: `2px solid ${modeColor}`,
-            fontSize: '2.6rem', fontWeight: 900, color: modeColor, marginBottom: '10px',
+          <div 
+            onClick={() => setCinematicActive(false)}
+            style={{
+              display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              width: '100%', padding: '12px', borderRadius: '10px',
+              background: 'rgba(255,255,255,0.04)', border: '1.5px solid rgba(255,255,255,0.08)',
+              fontSize: '0.82rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
+              transition: 'background 0.2s',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ animation: 'pulse-animation 1.5s infinite' }}>🎥</span>
+              <span>DRONE FLYOVER ACTIVE</span>
+            </div>
+            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginTop: '4px', fontWeight: 500 }}>
+              Press SPACE, ESC or CLICK HERE to Skip
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── BIG COUNTDOWN OVERLAY DURING CAMERA SLIDE ────────────────────── */}
+      {phase === 'ROUND_INTRO' && !cinematicActive && (
+        <div style={{
+          position: 'fixed', top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center', zIndex: 1000, pointerEvents: 'none',
+        }}>
+          <h1 style={{
+            fontSize: '8.5rem', margin: 0, fontWeight: 950,
+            color: 'white',
+            letterSpacing: '0.05em',
+            textShadow: `0 0 40px ${modeColor}, 0 0 10px white`,
+            animation: 'scale-up-pop 1.0s infinite ease-out',
           }}>
             {introCountdown}
-          </div>
-          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', fontWeight: 700 }}>
+          </h1>
+          <div style={{
+            fontSize: '1.2rem',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            color: modeColor,
+            letterSpacing: '0.2em',
+            marginTop: '8px',
+            textShadow: `0 0 10px ${modeColor}99`,
+          }}>
             Get Ready...
           </div>
         </div>

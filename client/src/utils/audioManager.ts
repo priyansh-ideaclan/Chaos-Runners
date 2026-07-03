@@ -26,11 +26,14 @@ class AudioManager {
     4, -1, 6, -1, 7, 6, 5, -1,
     3, 4, 5, 3, 2, -1, 0, -1
   ];
+  private musicVolumeMultiplier = 1.0;
+  private lastLevelId = '';
 
   constructor() {
-    // Listen to changes in the game store to adjust volumes dynamically
+    // Listen to changes in the game store to adjust volumes and music levels dynamically
     useGameStore.subscribe((state) => {
       this.updateVolumes(state);
+      this.updateLevelBGM(state.currentLevelId);
     });
   }
 
@@ -55,18 +58,54 @@ class AudioManager {
     // Initial volumes load from game store state
     const state = useGameStore.getState();
     this.updateVolumes(state);
+    this.updateLevelBGM(state.currentLevelId);
   }
 
   private updateVolumes(state: any) {
     if (!this.ctx) return;
 
     const master = state.masterVolume;
-    const music = state.musicMuted ? 0 : state.musicVolume;
+    const music = (state.musicMuted ? 0 : state.musicVolume) * this.musicVolumeMultiplier;
     const sfx = state.sfxMuted ? 0 : state.sfxVolume;
 
     if (this.masterGain) this.masterGain.gain.setValueAtTime(master, this.ctx.currentTime);
     if (this.musicGain) this.musicGain.gain.setValueAtTime(music, this.ctx.currentTime);
     if (this.sfxGain) this.sfxGain.gain.setValueAtTime(sfx * 0.8, this.ctx.currentTime); // slightly damp sfx to make it soft
+  }
+
+  public setMusicVolumeMultiplier(mult: number) {
+    this.musicVolumeMultiplier = mult;
+    if (this.ctx) {
+      const state = useGameStore.getState();
+      this.updateVolumes(state);
+    }
+  }
+
+  public updateLevelBGM(levelId: string) {
+    if (levelId === this.lastLevelId) return;
+    this.lastLevelId = levelId;
+    
+    if (levelId.startsWith('race')) {
+      this.bpm = 120;
+      this.bassProgression = [130.81, 98.00, 110.00, 87.31]; // C, G, A, F
+      this.melodyScale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
+    } else if (levelId.startsWith('survival')) {
+      this.bpm = 142;
+      this.bassProgression = [110.00, 87.31, 98.00, 110.00]; // Am, F, G, Am (Tense)
+      this.melodyScale = [220.00, 246.94, 261.63, 293.66, 329.63, 349.23, 392.00, 440.00]; // A Minor Scale
+    } else if (levelId.startsWith('logic')) {
+      this.bpm = 100;
+      this.bassProgression = [110.00, 110.00, 123.47, 130.81]; // Tense progression
+      this.melodyScale = [220.00, 233.08, 261.63, 277.18, 311.13, 329.63, 369.99, 440.00]; // Mystery Scale
+    } else if (levelId.startsWith('hunt')) {
+      this.bpm = 130;
+      this.bassProgression = [130.81, 164.81, 146.83, 196.00]; // C, E, D, G (Upbeat)
+      this.melodyScale = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25]; // C Major Scale
+    } else if (levelId.startsWith('final')) {
+      this.bpm = 155;
+      this.bassProgression = [110.00, 87.31, 116.54, 98.00]; // Fast and heavy Am
+      this.melodyScale = [220.00, 246.94, 261.63, 293.66, 329.63, 349.23, 415.30, 440.00]; // Harmonic Minor Scale
+    }
   }
 
   private resumeContext() {
@@ -84,11 +123,11 @@ class AudioManager {
     this.isMusicPlaying = true;
     this.currentStep = 0;
     
-    const stepDuration = 60 / this.bpm / 2; // 8th notes (BPM / 120 steps/s)
     let nextNoteTime = this.ctx.currentTime;
 
     const scheduler = () => {
       while (nextNoteTime < this.ctx!.currentTime + 0.1) {
+        const stepDuration = 60 / this.bpm / 2; // 8th notes (BPM / 120 steps/s)
         this.scheduleSequencerStep(this.currentStep, nextNoteTime);
         nextNoteTime += stepDuration;
         this.currentStep = (this.currentStep + 1) % 32;
