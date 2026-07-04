@@ -103,7 +103,7 @@ export const MainMenu: React.FC = () => {
             </span>
           </div>
           <h1 className="gradient-title" style={{ fontSize: '2.5rem', margin: '0 0 6px 0', lineHeight: 1.1 }}>
-            CHAO RUNNERS
+            CHAOS RUNNERS
           </h1>
           {/* Player identity badge */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>

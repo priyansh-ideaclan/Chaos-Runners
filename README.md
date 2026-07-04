@@ -1,6 +1,6 @@
-# ChaoRunners: Extreme Physics Party Platformer
+# Chaos Runners: Extreme Physics Party Platformer
 
-Welcome to **ChaoRunners**, an original 3D physics-driven multiplayer party game built from scratch using React, TypeScript, React Three Fiber, Rapier Physics, and Colyseus.
+Welcome to **Chaos Runners**, an original 3D physics-driven multiplayer party game built from scratch using React, TypeScript, React Three Fiber, Rapier Physics, and Colyseus.
 
 This project is a monorepo containing the frontend client and backend server.
 
@@ -9,7 +9,7 @@ This project is a monorepo containing the frontend client and backend server.
 ## 📂 Project Architecture
 
 ```
-Fall Guys/
+Chaos Runners/
 ├── package.json               # Root monorepo workspace configurations
 ├── shared/                    # Shared TypeScript types & interfaces
 ├── server/                    # Express + Node.js + Colyseus server

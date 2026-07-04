@@ -123,7 +123,7 @@ export const PlayerNameEntry: React.FC = () => {
           className="gradient-title"
           style={{ fontSize: '2rem', margin: '0 0 4px 0', lineHeight: 1.1 }}
         >
-          CHAO RUNNERS
+          CHAOS RUNNERS
         </h1>
         <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.85rem', margin: '0 0 32px 0', letterSpacing: '0.08em' }}>
           THE ULTIMATE PARTY RACE

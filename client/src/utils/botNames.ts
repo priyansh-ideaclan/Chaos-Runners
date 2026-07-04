@@ -1,6 +1,6 @@
 /**
  * botNames.ts
- * A pool of 100+ fun, playful bot names for ChaoRunners races.
+ * A pool of 100+ fun, playful bot names for Chaos Runners races.
  */
 
 const BOT_NAME_POOL: string[] = [
