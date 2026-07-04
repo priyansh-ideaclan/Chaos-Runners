@@ -25,8 +25,9 @@ const LEVEL_1_LEFT_PATH: [number, number, number][] = [
   [-7.5, 0.5, 33.0],  // Left mud area
   [0, 1.0, 40.6],    // Merge Checkpoint 2
   [0, 1.05, 47.0],   // Jump Pad
-  [0, 7.5, 54.0],    // Landing deck Storey 1
-  [-3.5, 7.9, 61.0], // Ice platform left Storey 2
+  [0, 7.5, 54.0],    // Landing deck Storey 1 – far-left gap, thread X=-4.5 through all pillars
+  [-4.5, 7.5, 54.0], // Bumpy Pillar Arena – hug far left (clear of Pillar 1, 4 at X=-2.5)
+  [-6.0, 7.9, 61.0], // Combined platform – far-left gap (clear of all 3 windmills)
   [-6.5, 8.7, 65.5], // Arena left edge (clear of center Hammer 1 arc)
   [-6.5, 8.7, 69.5], // Arena left edge (between Hammer 2 and Hammer 4)
   [-6.5, 8.7, 73.5], // Arena left exit (clear of Hammer 5 & 6)
@@ -56,8 +57,10 @@ const LEVEL_1_MIDDLE_PATH: [number, number, number][] = [
   [0, 1.0, 40.6],    // Checkpoint 2
   [0, 1.05, 47.0],   // Jump Pad
   [0, 7.5, 54.0],    // Landing deck Storey 1
-  [0, 7.5, 54.0],    // Stay in center
-  [-4.0, 8.3, 61.0], // Windmill crossing – hug left (avoid right windmills)
+  [0, 7.5, 54.0],    // Landing deck Storey 1 – thread center corridor
+  [-1.4, 7.5, 51.5], // Bumpy Pillar entry: gap between Pillar 1 (X=-2.5) & Pillar 2 (X=+2.5)
+  [0.0, 7.5, 54.0],  // Center gap past Pillar 3 (aim slightly right)
+  [-2.0, 7.9, 61.0], // Combined platform – gap between WM1 & WM2 (X=-3.8 and X=0)
   [6.5, 8.7, 65.5],  // Arena right edge entry (dodge Hammer 1 center)
   [-6.5, 8.7, 69.5], // Arena left side mid (between Hammer 3 and Hammer 4)
   [6.5, 8.7, 73.5],  // Arena right exit (dodge Hammer 5)
@@ -84,8 +87,9 @@ const LEVEL_1_RIGHT_PATH: [number, number, number][] = [
   [7.5, 0.1, 34.0],  // Hammer platform
   [0, 1.0, 40.6],    // Checkpoint 2
   [0, 1.05, 47.0],   // Jump Pad
-  [0, 7.5, 54.0],    // Landing deck Storey 1
-  [4.5, 8.3, 61.0],  // Windmill bridge right Storey 2 – thread between windmills
+  [0, 7.5, 54.0],    // Landing deck Storey 1 – far-right gap, thread X=+4.5 through all pillars
+  [4.5, 7.5, 54.0],  // Bumpy Pillar Arena – hug far right (clear of Pillar 2, 5 at X=+2.5)
+  [6.0, 7.9, 61.0],  // Combined platform – far-right gap (clear of all 3 windmills)
   [6.5, 8.7, 65.5],  // Arena right edge entry (dodge Hammer 1)
   [6.5, 8.7, 69.5],  // Arena right mid (between Hammer 3 and Hammer 4)
   [-6.5, 8.7, 73.5], // Arena left exit (dodge Hammer 6)

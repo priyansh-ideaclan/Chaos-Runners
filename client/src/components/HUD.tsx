@@ -97,6 +97,18 @@ export const HUD: React.FC = () => {
   // Keyboard shortcut listener for BGM controls during gameplay
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Always prevent spacebar from activating focused buttons/links
+      // This stops jump key from accidentally clicking any HUD button that
+      // retained focus after being clicked.
+      if (e.key === ' ' || e.code === 'Space') {
+        const active = document.activeElement;
+        if (active && (active.tagName === 'BUTTON' || active.tagName === 'A')) {
+          e.preventDefault();
+          (active as HTMLElement).blur();
+          return;
+        }
+      }
+
       if (phase !== 'PLAYING') return;
 
       // Skip shortcuts if typing in any text inputs
@@ -705,6 +717,7 @@ export const HUD: React.FC = () => {
           
           <button 
             className="ui-interactive btn-secondary" 
+            tabIndex={-1}
             style={{ 
               pointerEvents: 'all', 
               padding: '10px 16px', 
@@ -724,6 +737,7 @@ export const HUD: React.FC = () => {
           {((import.meta as any).env?.DEV || process.env.NODE_ENV === 'development') && (
             <button 
               className="ui-interactive btn-secondary" 
+              tabIndex={-1}
               style={{ 
                 pointerEvents: 'all', 
                 padding: '10px 16px', 
@@ -744,6 +758,7 @@ export const HUD: React.FC = () => {
           {/* Bots Toggle — always visible in the dev toolbar */}
           <button
             className="ui-interactive btn-secondary"
+            tabIndex={-1}
             style={{
               pointerEvents: 'all',
               padding: '10px 16px',
@@ -761,7 +776,7 @@ export const HUD: React.FC = () => {
             {botsEnabled ? 'Disable Bots' : 'Enable Bots'}
           </button>
 
-          <button className="ui-interactive btn-secondary" style={{ pointerEvents: 'all', padding: '10px 16px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800 }} onClick={resetTournament}>
+          <button className="ui-interactive btn-secondary" tabIndex={-1} style={{ pointerEvents: 'all', padding: '10px 16px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800 }} onClick={resetTournament}>
             <Home size={14} /> Leave Match
           </button>
         </div>

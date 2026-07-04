@@ -310,7 +310,174 @@ export const ConveyorBelt: React.FC<{ position: [number, number, number]; size: 
   );
 };
 
+// ─── Seesaw ───────────────────────────────────────────────────────────────────
+// Physics-accurate seesaw: plank is a kinematic RigidBody that tilts around a
+// fixed central pivot based on the sum of all characters' weight × offset.
+// The 'axis' prop controls which horizontal axis tilts:
+//   'x' → plank tilts left/right  (rotation around world X — front-back weight)
+//   'z' → plank tilts forward/backward  (rotation around world Z — side-side weight)
+
+interface SeesawProps {
+  position: [number, number, number];
+  length?: number;   // full plank length (along the non-pivot horizontal axis)
+  width?: number;    // plank width (perpendicular)
+  thickness?: number;
+  axis?: 'x' | 'z'; // pivot axis direction
+  color?: string;
+  pivotColor?: string;
+}
+
+export const Seesaw: React.FC<SeesawProps> = ({
+  position,
+  length = 6.0,
+  width = 3.0,
+  thickness = 0.28,
+  axis = 'z',
+  color = '#ffd60a',
+  pivotColor = '#555555',
+}) => {
+  const rbRef = useRef<RapierRigidBody>(null);
+  // Visual group ref for the pivot-relative display
+  const visualRef = useRef<THREE.Group>(null);
+
+  // Physics state
+  const angleRef = useRef(0);         // current tilt angle (radians)
+  const angVelRef = useRef(0);        // angular velocity (rad/s)
+
+  const STIFFNESS = 2.4;    // how strongly weight drives rotation
+  const DAMPING   = 0.88;   // angular velocity damping per frame (0-1)
+  const MAX_ANGLE = Math.PI / 5.2;  // ~34°
+
+  // Plank half-extents for the collider
+  // axis='z': plank is long in Z → pivot tilts around Z, long axis = Z
+  // axis='x': plank is long in X → pivot tilts around X, long axis = X
+  const halfLong  = length / 2;
+  const halfWide  = width / 2;
+  const halfThick = thickness / 2;
+
+  // Collider args: [halfX, halfY, halfZ]
+  const colliderArgs: [number, number, number] = axis === 'z'
+    ? [halfWide, halfThick, halfLong]
+    : [halfLong, halfThick, halfWide];
+
+  useFrame((state, delta) => {
+    const rb = rbRef.current;
+    if (!rb) return;
+
+    // ── 1. Compute net torque from weight (signed offset on the pivot axis) ──
+    let netTorque = 0;
+
+    const scan = (obj: THREE.Object3D) => {
+      const d = obj.position.clone().sub(new THREE.Vector3(...position));
+      const onPlank = Math.abs(d.x) < halfWide + 0.5 && Math.abs(d.z) < halfLong + 0.5;
+      if (!onPlank) return;
+      // For axis='z', weight imbalance comes from X offset (right vs left)
+      // For axis='x', weight imbalance comes from Z offset (front vs back)
+      const offset = axis === 'z' ? d.x : d.z;
+      netTorque += offset;
+    };
+
+    const player = state.scene.getObjectByName('player');
+    if (player) scan(player);
+    state.scene.children
+      .filter(c => c.name === 'bot')
+      .forEach(scan);
+
+    // ── 2. Integrate angular velocity ──
+    const targetAngVel = netTorque * STIFFNESS * delta;
+    angVelRef.current = angVelRef.current * DAMPING + targetAngVel;
+    angleRef.current = THREE.MathUtils.clamp(
+      angleRef.current + angVelRef.current,
+      -MAX_ANGLE,
+      MAX_ANGLE,
+    );
+
+    // Snap back toward 0 when nobody is on it
+    if (Math.abs(netTorque) < 0.05) {
+      angleRef.current = THREE.MathUtils.lerp(angleRef.current, 0, 0.018);
+      angVelRef.current *= 0.92;
+    }
+
+    // ── 3. Update kinematic RigidBody position + rotation ──
+    const angle = angleRef.current;
+    const quat = new THREE.Quaternion();
+    if (axis === 'z') {
+      quat.setFromEuler(new THREE.Euler(0, 0, angle));
+    } else {
+      quat.setFromEuler(new THREE.Euler(angle, 0, 0));
+    }
+
+    rb.setNextKinematicTranslation({
+      x: position[0],
+      y: position[1],
+      z: position[2],
+    });
+    rb.setNextKinematicRotation(quat);
+  });
+
+  return (
+    <group>
+      {/* ── Pivot fulcrum (triangular wedge shape: two boxes) ── */}
+      {/* Base block */}
+      <mesh castShadow position={[position[0], position[1] - thickness - 0.22, position[2]]}>
+        <boxGeometry args={[0.7, 0.44, 0.7]} />
+        <meshStandardMaterial color={pivotColor} roughness={0.5} metalness={0.3} />
+      </mesh>
+      {/* Narrow top wedge */}
+      <mesh castShadow position={[position[0], position[1] - thickness * 0.5, position[2]]}>
+        <cylinderGeometry args={[0.12, 0.32, 0.44, 8]} />
+        <meshStandardMaterial color={pivotColor} roughness={0.4} metalness={0.4} />
+      </mesh>
+
+      {/* ── Seesaw plank — kinematic RigidBody ── */}
+      <RigidBody
+        ref={rbRef}
+        type="kinematicPosition"
+        colliders={false}
+        position={position}
+        friction={0.85}
+        restitution={0.05}
+      >
+        <CuboidCollider args={colliderArgs} />
+        <mesh castShadow receiveShadow>
+          {axis === 'z'
+            ? <boxGeometry args={[width, thickness, length]} />
+            : <boxGeometry args={[length, thickness, width]} />
+          }
+          <meshStandardMaterial color={color} roughness={0.35} metalness={0.12} />
+        </mesh>
+
+        {/* ── End markers — coloured caps to show which end is which ── */}
+        {axis === 'z' ? (
+          <>
+            <mesh position={[0, thickness * 0.5, -halfLong + 0.18]} castShadow>
+              <boxGeometry args={[width - 0.1, 0.1, 0.36]} />
+              <meshStandardMaterial color="#ff007f" roughness={0.2} emissive="#ff007f" emissiveIntensity={0.35} />
+            </mesh>
+            <mesh position={[0, thickness * 0.5, halfLong - 0.18]} castShadow>
+              <boxGeometry args={[width - 0.1, 0.1, 0.36]} />
+              <meshStandardMaterial color="#00e5ff" roughness={0.2} emissive="#00e5ff" emissiveIntensity={0.35} />
+            </mesh>
+          </>
+        ) : (
+          <>
+            <mesh position={[-halfLong + 0.18, thickness * 0.5, 0]} castShadow>
+              <boxGeometry args={[0.36, 0.1, width - 0.1]} />
+              <meshStandardMaterial color="#ff007f" roughness={0.2} emissive="#ff007f" emissiveIntensity={0.35} />
+            </mesh>
+            <mesh position={[halfLong - 0.18, thickness * 0.5, 0]} castShadow>
+              <boxGeometry args={[0.36, 0.1, width - 0.1]} />
+              <meshStandardMaterial color="#00e5ff" roughness={0.2} emissive="#00e5ff" emissiveIntensity={0.35} />
+            </mesh>
+          </>
+        )}
+      </RigidBody>
+    </group>
+  );
+};
+
 // 5. Tilting Platform (Tilts based on weight balance)
+
 export const TiltingDeck: React.FC<{ position: [number, number, number]; size: [number, number, number]; color?: string }> = ({ position, size, color = '#ff007f' }) => {
   const groupRef = useRef<THREE.Group>(null);
   const tiltZ = useRef(0);
@@ -1176,7 +1343,191 @@ export const SlimeSplash: React.FC<{ position: [number, number, number]; color?:
     </group>
   );
 };
+// ─── BumpyPillar ──────────────────────────────────────────────────────────────
+// Rotating cylinder with protruding bumps (spheres) around its circumference.
+// Physics: kinematicPosition RigidBody → bumps act as real collision surfaces.
+// Knockback: tangential (sweep direction) + radial (outward) + vertical pop.
+
+interface BumpyPillarProps {
+  position: [number, number, number];
+  speed?: number;       // rad/s — positive = CCW, negative = CW
+  color?: string;       // pillar body color
+  bumpColor?: string;   // bump sphere color (defaults to a contrasting accent)
+  radius?: number;      // pillar body radius
+  height?: number;      // total pillar height
+  bumpCount?: number;   // bumps per ring
+  rings?: number;       // how many bump rings (1 or 2)
+}
+
+export const BumpyPillar: React.FC<BumpyPillarProps> = ({
+  position,
+  speed = 1.5,
+  color = '#ff007f',
+  bumpColor,
+  radius = 0.38,
+  height = 2.0,
+  bumpCount = 5,
+  rings = 2,
+}) => {
+  const rbRef = useRef<RapierRigidBody>(null);
+  const angleRef = useRef(0);
+  const cooldownRef = useRef<Record<string, number>>({});
+
+  const BUMP_RADIUS = 0.26;
+  const BUMP_DIST   = radius + BUMP_RADIUS + 0.04; // centre of bump from axis
+  const KNOCK       = 16.0;
+  const UP_BOOST    = 5.5;
+  const COOLDOWN    = 0.55;
+
+  // Angles for each bump around the circle
+  const bumpAngles = useMemo(
+    () => Array.from({ length: bumpCount }, (_, i) => (i / bumpCount) * Math.PI * 2),
+    [bumpCount],
+  );
+
+  // Ring Y-offsets relative to pillar centre (negative = lower, positive = upper)
+  const ringOffsets = rings >= 2 ? [-0.38, 0.38] : [0];
+
+  // ── Rotate pillar each frame ──
+  useFrame((_state, delta) => {
+    const rb = rbRef.current;
+    if (!rb) return;
+    angleRef.current += speed * delta;
+    const q = new THREE.Quaternion().setFromAxisAngle(
+      new THREE.Vector3(0, 1, 0),
+      angleRef.current,
+    );
+    rb.setNextKinematicTranslation({ x: position[0], y: position[1], z: position[2] });
+    rb.setNextKinematicRotation(q);
+  });
+
+  // ── Knockback on bump contact ──
+  const handleHit = (event: any) => {
+    const otherBody: RapierRigidBody | undefined = event.rigidBody;
+    const otherObj = event.rigidBodyObject;
+    if (!otherBody || !otherObj) return;
+    if (otherObj.name !== 'player' && otherObj.name !== 'bot') return;
+
+    const id = otherObj.uuid ?? otherObj.name;
+    const now = performance.now() / 1000;
+    if (cooldownRef.current[id] && now - cooldownRef.current[id] < COOLDOWN) return;
+    cooldownRef.current[id] = now;
+
+    // Direction from pillar axis to target (radial)
+    const pivot = new THREE.Vector3(...position);
+    const t = otherBody.translation();
+    const radialDir = new THREE.Vector3(t.x - pivot.x, 0, t.z - pivot.z).normalize();
+
+    // Tangential: perpendicular to radial, in the sweep direction of the spin
+    const sign = speed >= 0 ? 1 : -1;
+    const tangDir = new THREE.Vector3(-radialDir.z * sign, 0, radialDir.x * sign);
+
+    // 65% tangential sweep + 35% radial push
+    const kx = (tangDir.x * 0.65 + radialDir.x * 0.35) * KNOCK;
+    const kz = (tangDir.z * 0.65 + radialDir.z * 0.35) * KNOCK;
+    otherBody.setLinvel({ x: kx, y: UP_BOOST, z: kz }, true);
+    audioManager.playJump?.();
+  };
+
+  const resolvedBumpColor = bumpColor ?? (color === '#ff007f' ? '#ffd60a' : '#ff007f');
+
+  return (
+    <group>
+      {/* ── Decorative base ring (fixed, no physics needed) ── */}
+      <mesh position={[position[0], position[1] - height / 2 - 0.05, position[2]]} receiveShadow>
+        <cylinderGeometry args={[radius * 2.0, radius * 2.2, 0.14, 20]} />
+        <meshStandardMaterial color="#222" roughness={0.4} metalness={0.6} />
+      </mesh>
+      <mesh position={[position[0], position[1] - height / 2 + 0.02, position[2]]}>
+        <cylinderGeometry args={[radius * 1.5, radius * 1.55, 0.08, 20]} />
+        <meshStandardMaterial color={color} roughness={0.15} metalness={0.5}
+          emissive={color} emissiveIntensity={0.4} />
+      </mesh>
+
+      {/* ── Kinematic rotating body: pillar + bump colliders + visuals ── */}
+      <RigidBody
+        ref={rbRef}
+        type="kinematicPosition"
+        colliders={false}
+        position={position}
+        onCollisionEnter={handleHit}
+      >
+        {/* Main cylinder collider */}
+        <CylinderCollider args={[height / 2, radius]} />
+
+        {/* Bump colliders — one CuboidCollider per bump per ring */}
+        {ringOffsets.map((yOff, ri) =>
+          bumpAngles.map((angle, bi) => (
+            <CuboidCollider
+              key={`col-${ri}-${bi}`}
+              args={[BUMP_RADIUS, BUMP_RADIUS, BUMP_RADIUS]}
+              position={[
+                Math.cos(angle) * BUMP_DIST,
+                yOff,
+                Math.sin(angle) * BUMP_DIST,
+              ]}
+            />
+          )),
+        )}
+
+        {/* ── Pillar body visual ── */}
+        <mesh castShadow receiveShadow>
+          <cylinderGeometry args={[radius * 0.95, radius, height, 20]} />
+          <meshStandardMaterial
+            color={color}
+            roughness={0.18}
+            metalness={0.28}
+            emissive={color}
+            emissiveIntensity={0.12}
+          />
+        </mesh>
+
+        {/* Spiral stripe painted on pillar surface (decorative ring meshes) */}
+        {[0.38, 0.0, -0.38].map((yy, i) => (
+          <mesh key={i} position={[0, yy, 0]}>
+            <torusGeometry args={[radius + 0.01, 0.04, 8, 24]} />
+            <meshStandardMaterial color={resolvedBumpColor} roughness={0.1} metalness={0.5}
+              emissive={resolvedBumpColor} emissiveIntensity={0.3} />
+          </mesh>
+        ))}
+
+        {/* Top cap sphere */}
+        <mesh position={[0, height / 2 + 0.02, 0]} castShadow>
+          <sphereGeometry args={[radius * 1.1, 16, 16]} />
+          <meshStandardMaterial color={resolvedBumpColor} roughness={0.1} metalness={0.5}
+            emissive={resolvedBumpColor} emissiveIntensity={0.4} />
+        </mesh>
+
+        {/* ── Bump spheres (visuals) — two rings ── */}
+        {ringOffsets.map((yOff, ri) =>
+          bumpAngles.map((angle, bi) => (
+            <mesh
+              key={`vis-${ri}-${bi}`}
+              position={[
+                Math.cos(angle) * BUMP_DIST,
+                yOff,
+                Math.sin(angle) * BUMP_DIST,
+              ]}
+              castShadow
+            >
+              <sphereGeometry args={[BUMP_RADIUS, 14, 14]} />
+              <meshStandardMaterial
+                color={resolvedBumpColor}
+                roughness={0.12}
+                metalness={0.45}
+                emissive={resolvedBumpColor}
+                emissiveIntensity={0.25}
+              />
+            </mesh>
+          )),
+        )}
+      </RigidBody>
+    </group>
+  );
+};
+
 // ─── SpinningHammer ──────────────────────────────────────────────────────────
+
 
 interface SpinningHammerProps {
   position: [number, number, number];

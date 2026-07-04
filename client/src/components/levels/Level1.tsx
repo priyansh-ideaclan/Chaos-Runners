@@ -27,6 +27,8 @@ import {
   CandyMountain,
   DriftingCloud,
   SpinningHammer,
+  Seesaw,
+  BumpyPillar,
   StartLine,
   GoalLine
 } from '../LevelObstacles';
@@ -248,8 +250,17 @@ export const Level1: React.FC = () => {
       <ConfettiCannon position={[-4.0, 0, 20]} active={isCp1Active} />
       <ConfettiCannon position={[4.0, 0, 20]} active={isCp1Active} />
 
-      {/* Platform 1: Tilting Deck Platforming */}
-      <TiltingDeck position={[-1.5, 0.1, 24.5]} size={[4.0, 0.5, 4.0]} color="#00e5ff" />
+      {/* Platform 1 (LM10): SEESAW — tilts left/right based on player X position
+          axis='z' means rotation is around Z-axis (left-right tilt) */}
+      <Seesaw
+        position={[-1.5, 0.25, 24.5]}
+        length={4.5}
+        width={3.5}
+        thickness={0.3}
+        axis="z"
+        color="#00e5ff"
+        pivotColor="#445566"
+      />
 
       {/* ── LEFT PATHWAY (EASY / LONG) ── */}
       <RigidBody type="fixed" colliders={false}>
@@ -261,15 +272,18 @@ export const Level1: React.FC = () => {
       </RigidBody>
       <PatternWindmill position={[-7.5, 3.2, 22.0]} color="#ffd60a" />
 
-      {/* ── MIDDLE PATHWAY (BALANCED / ZIG-ZAG) ── */}
-      {/* Platform A: Fixed flat stone platform */}
-      <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[2.0, 0.25, 2.0]} position={[1.5, 0.1, 28.2]} />
-        <mesh receiveShadow position={[1.5, 0.1, 28.2]}>
-          <boxGeometry args={[4.0, 0.5, 4.0]} />
-          <meshStandardMaterial color="#8b8589" roughness={0.8} />
-        </mesh>
-      </RigidBody>
+      {/* Platform A (LM14): SEESAW — tilts front/back as player walks across
+          axis='x' means rotation is around X-axis (front-back tilt)
+          Longer plank bridges the Middle path gap — extra challenge */}
+      <Seesaw
+        position={[1.5, 0.25, 28.2]}
+        length={5.0}
+        width={3.2}
+        thickness={0.28}
+        axis="x"
+        color="#ff9500"
+        pivotColor="#554433"
+      />
 
       {/* Platform B: Moving X flat platform */}
       <MovingPlatform position={[-1.2, 0.35, 31.8]} size={[4.0, 0.5, 4.0]} direction="x" range={1.2} speed={1.2} color="#ffd60a" />
@@ -334,33 +348,72 @@ export const Level1: React.FC = () => {
       <DecorativeTree position={[-7.5, 6.7, 60]} type="candy" variant="candy-green" scale={1.1} />
       <DecorativeTree position={[7.5, 6.7, 66]} type="candy" variant="candy-blue" scale={1.3} />
 
-      {/* Storey 1 (High Landing Deck) at Z = 54.0, Y = 7.5 */}
+      {/* Storey 1 (High Landing Deck + Bumpy Pillar Arena) at Z = 54.0, Y = 7.5
+          Platform widened to 12 × 10m to give players room to weave the pillars */}
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[6.0, 0.4, 4.0]} position={[0, 7.1, 54.0]} />
+        <CuboidCollider args={[6.0, 0.4, 5.0]} position={[0, 7.1, 54.0]} />
         <mesh receiveShadow position={[0, 7.1, 54.0]}>
-          <boxGeometry args={[12.0, 0.8, 8.0]} />
+          <boxGeometry args={[12.0, 0.8, 10.0]} />
           <meshStandardMaterial color="#00e5ff" roughness={0.3} metalness={0.2} />
         </mesh>
       </RigidBody>
-      <WavingFlag position={[-5.5, 7.5, 54.0]} color="#00e5ff" />
-      <WavingFlag position={[5.5, 7.5, 54.0]} color="#ff007f" />
+      {/* Subtle warning-stripe overlay on the platform surface */}
+      <mesh position={[0, 7.52, 54.0]}>
+        <boxGeometry args={[12.2, 0.04, 10.2]} />
+        <meshStandardMaterial color="#ffd60a" roughness={0.2} metalness={0.3}
+          transparent opacity={0.18} emissive="#ffd60a" emissiveIntensity={0.06} />
+      </mesh>
+      <WavingFlag position={[-5.5, 7.5, 50.5]} color="#00e5ff" />
+      <WavingFlag position={[5.5, 7.5, 50.5]} color="#ff007f" />
 
-      {/* ── STOREY 2: Ice Platform (left) + Windmill Bridge (right) at Z = 61.0, Y = 8.3 ── */}
-      {/* Ice Platform – left side */}
-      <IcePlatform position={[-3.5, 7.9, 61.0]} size={[5.0, 0.8, 5.0]} color="#b2f2ff" />
-      <DecorativeTree position={[-7.5, 8.3, 61.0]} type="candy" variant="candy-purple" scale={0.8} />
+      {/* ── BUMPY PILLAR ARENA (LM24–25): diamond layout ──
+          Gaps for players:
+            far-left  X ≈ -4.5   (outside all pillars)
+            left-mid  X ≈ -1.4   (between WM at X=-2.5 and X=+0)
+            right-mid X ≈ +1.4   (between WM at X=0 and X=+2.5)
+            far-right X ≈ +4.5   (outside all pillars)
+      */}
+      {/* Pillar 1 — entry left, hot-pink, slow CCW */}
+      <BumpyPillar position={[-2.5, 8.5, 51.0]} speed={-1.2} color="#ff007f" bumpColor="#ffd60a" bumpCount={5} rings={2} />
+      {/* Pillar 2 — entry right, cyan, medium CW */}
+      <BumpyPillar position={[2.5, 8.5, 51.0]}  speed={1.8}  color="#00e5ff" bumpColor="#ff007f" bumpCount={5} rings={2} />
+      {/* Pillar 3 — center, gold, fast CCW */}
+      <BumpyPillar position={[0.0, 8.5, 54.0]}  speed={-2.4} color="#ffd60a" bumpColor="#bd00ff" bumpCount={6} rings={2} />
+      {/* Pillar 4 — exit left, purple, medium CW */}
+      <BumpyPillar position={[-2.5, 8.5, 57.0]} speed={1.6}  color="#bd00ff" bumpColor="#00e5ff" bumpCount={5} rings={2} />
+      {/* Pillar 5 — exit right, orange, slow CW */}
+      <BumpyPillar position={[2.5, 8.5, 57.0]}  speed={-1.4} color="#ff6b00" bumpColor="#ffd60a" bumpCount={5} rings={2} />
 
-      {/* Right-side static bridge for windmills */}
+      {/* ── STOREY 2: Combined Windmill Crossing Platform at Z = 61.0, Y = 7.9 ── */}
+      {/* Single wide platform: 12m × 6m, merging the old ice + yellow bridge sections */}
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[2.5, 0.4, 2.5]} position={[3.5, 7.9, 61.0]} />
-        <mesh receiveShadow position={[3.5, 7.9, 61.0]}>
-          <boxGeometry args={[5.0, 0.8, 5.0]} />
-          <meshStandardMaterial color="#ffd60a" roughness={0.4} metalness={0.1} />
+        <CuboidCollider args={[6.0, 0.4, 3.0]} position={[0, 7.9, 61.0]} />
+        <mesh receiveShadow position={[0, 7.9, 61.0]}>
+          <boxGeometry args={[12.0, 0.8, 6.0]} />
+          <meshStandardMaterial color="#ffd60a" roughness={0.35} metalness={0.12} />
         </mesh>
       </RigidBody>
-      {/* Windmill pair on the right bridge – opposite rotations force timing */}
-      <Windmill position={[1.9, 9.6, 61.0]} speed={1.8} color="#ffd60a" />
-      <Windmill position={[5.1, 9.6, 61.0]} speed={-1.6} color="#ffd60a" />
+      {/* Subtle ice-blue inlay stripe on the left half (visual nod to old ice platform) */}
+      <mesh position={[-3.5, 7.95, 61.0]}>
+        <boxGeometry args={[5.0, 0.04, 5.8]} />
+        <meshStandardMaterial color="#b2f2ff" roughness={0.15} metalness={0.3} transparent opacity={0.55} />
+      </mesh>
+      {/* Gold edge trim on both long sides */}
+      <mesh position={[0, 7.97, 61.0]}>
+        <boxGeometry args={[12.2, 0.04, 6.2]} />
+        <meshStandardMaterial color="#ff9500" roughness={0.2} metalness={0.4} emissive="#ff9500" emissiveIntensity={0.12} />
+      </mesh>
+      {/* Decorative tree on the far left edge */}
+      <DecorativeTree position={[-7.0, 8.3, 61.0]} type="candy" variant="candy-purple" scale={0.8} />
+
+      {/* Three windmills evenly spaced across the combined platform */}
+      {/* Windmill 1 — left third (NEW — covers the old ice half) */}
+      <Windmill position={[-3.8, 9.6, 61.0]} speed={1.5} color="#00e5ff" />
+      {/* Windmill 2 — center */}
+      <Windmill position={[0.0, 9.6, 61.0]} speed={-2.0} color="#ffd60a" />
+      {/* Windmill 3 — right third */}
+      <Windmill position={[3.8, 9.6, 61.0]} speed={1.7} color="#ff007f" />
+
 
       {/* ── SPINNING HAMMER ARENA (LM27–29) — One large merged platform ── */}
       {/* Wide open arena: 18m × 12m, spanning Z = 63.5 to 75.5, centered at Z = 69.5 */}
