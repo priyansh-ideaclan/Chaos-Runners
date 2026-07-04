@@ -43,8 +43,12 @@ export const MainMenu: React.FC = () => {
     masterVolume,
     musicVolume,
     sfxVolume,
+    weatherVolume,
+    uiVolume,
     musicMuted,
     sfxMuted,
+    weatherMuted,
+    uiMuted,
     setVolume,
     toggleMute,
     playerName,
@@ -67,7 +71,7 @@ export const MainMenu: React.FC = () => {
     }
   };
 
-  const handleVolumeChange = (type: 'master' | 'music' | 'sfx', val: number) => {
+  const handleVolumeChange = (type: 'master' | 'music' | 'sfx' | 'weather' | 'ui', val: number) => {
     setVolume(type, val);
     if (type === 'master') {
       useMusicStore.getState().setMasterVolume(val);
@@ -285,6 +289,52 @@ export const MainMenu: React.FC = () => {
               />
             </div>
 
+            {/* Music Volume */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
+                <span>Music Volume</span>
+                <button
+                  onClick={() => toggleMute('music')}
+                  style={{ background: 'none', border: 'none', color: 'var(--secondary)', fontSize: '0.7rem', cursor: 'pointer', padding: 0 }}
+                >
+                  {musicMuted ? 'Unmute BGM 🔇' : 'Mute BGM 🔊'}
+                </button>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1.0"
+                step="0.05"
+                value={musicVolume}
+                disabled={musicMuted}
+                onChange={(e) => handleVolumeChange('music', parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: 'var(--secondary)', cursor: 'pointer', opacity: musicMuted ? 0.3 : 1 }}
+              />
+            </div>
+
+            {/* Weather Volume */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
+                <span>Weather Ambience</span>
+                <button
+                  onClick={() => toggleMute('weather')}
+                  style={{ background: 'none', border: 'none', color: 'var(--secondary)', fontSize: '0.7rem', cursor: 'pointer', padding: 0 }}
+                >
+                  {weatherMuted ? 'Unmute Ambience 🔇' : 'Mute Ambience 🔊'}
+                </button>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1.0"
+                step="0.05"
+                value={weatherVolume}
+                disabled={weatherMuted}
+                onChange={(e) => handleVolumeChange('weather', parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: 'var(--secondary)', cursor: 'pointer', opacity: weatherMuted ? 0.3 : 1 }}
+              />
+            </div>
+
             {/* SFX Volume */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
@@ -315,6 +365,28 @@ export const MainMenu: React.FC = () => {
               />
             </div>
 
+            {/* UI Volume */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
+                <span>UI Click Volume</span>
+                <button
+                  onClick={() => toggleMute('ui')}
+                  style={{ background: 'none', border: 'none', color: 'var(--secondary)', fontSize: '0.7rem', cursor: 'pointer', padding: 0 }}
+                >
+                  {uiMuted ? 'Unmute UI 🔇' : 'Mute UI 🔊'}
+                </button>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1.0"
+                step="0.05"
+                value={uiVolume}
+                disabled={uiMuted}
+                onChange={(e) => handleVolumeChange('ui', parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: 'var(--secondary)', cursor: 'pointer', opacity: uiMuted ? 0.3 : 1 }}
+              />
+            </div>
 
           </div>
         </div>

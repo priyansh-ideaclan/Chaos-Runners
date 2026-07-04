@@ -634,23 +634,34 @@ export const PowerJumpPad: React.FC<PowerJumpPadProps> = ({ position, boostForce
 // 2. Decorative Tree (Supports multiple styles: pine, oak, palm, snow, autumn)
 interface DecorativeTreeProps {
   position: [number, number, number];
-  type?: 'pine' | 'oak' | 'palm';
-  variant?: 'normal' | 'snow' | 'autumn';
+  type?: 'pine' | 'oak' | 'palm' | 'candy';
+  variant?: 'normal' | 'snow' | 'autumn' | 'candy-pink' | 'candy-yellow' | 'candy-blue' | 'candy-purple' | 'candy-green';
   scale?: number;
 }
 
 export const DecorativeTree: React.FC<DecorativeTreeProps> = ({ position, type = 'pine', variant = 'normal', scale = 1.0 }) => {
-  const trunkColor = '#5c4033';
+  let trunkColor = '#5c4033';
   
   let foliageColor = '#2e8b57'; // forest green
   if (variant === 'snow') foliageColor = '#eef3f7'; // snowy white
   if (variant === 'autumn') foliageColor = '#d2691e'; // autumn orange/gold
 
+  // Candy pastel colors
+  if (variant === 'candy-pink') foliageColor = '#ffb7b2';
+  if (variant === 'candy-yellow') foliageColor = '#ffe57f';
+  if (variant === 'candy-blue') foliageColor = '#90e0ef';
+  if (variant === 'candy-purple') foliageColor = '#d8b4f8';
+  if (variant === 'candy-green') foliageColor = '#a8e6cf';
+  
+  if (type === 'candy') {
+    trunkColor = '#f5ebe0'; // pastel beige trunk
+  }
+
   return (
     <group position={position} scale={[scale, scale, scale]}>
       {/* Tree Trunk */}
       <mesh position={[0, 0.8, 0]} castShadow>
-        <cylinderGeometry args={[0.15, 0.25, 1.6, 8]} />
+        <cylinderGeometry args={type === 'candy' ? [0.08, 0.14, 1.4, 8] : [0.15, 0.25, 1.6, 8]} />
         <meshStandardMaterial color={trunkColor} roughness={0.9} />
       </mesh>
 
@@ -692,6 +703,25 @@ export const DecorativeTree: React.FC<DecorativeTreeProps> = ({ position, type =
               <meshStandardMaterial color="#2e8b57" roughness={0.7} />
             </mesh>
           ))}
+        </group>
+      )}
+
+      {type === 'candy' && (
+        <group position={[0, 1.4, 0]}>
+          {/* Main Bubble */}
+          <mesh castShadow position={[0, 0.4, 0]}>
+            <sphereGeometry args={[0.85, 12, 12]} />
+            <meshStandardMaterial color={foliageColor} roughness={0.85} />
+          </mesh>
+          {/* Side bubbles */}
+          <mesh castShadow position={[0.55, 0.2, 0.15]}>
+            <sphereGeometry args={[0.6, 10, 10]} />
+            <meshStandardMaterial color={foliageColor} roughness={0.85} />
+          </mesh>
+          <mesh castShadow position={[-0.55, 0.35, -0.15]}>
+            <sphereGeometry args={[0.65, 10, 10]} />
+            <meshStandardMaterial color={foliageColor} roughness={0.85} />
+          </mesh>
         </group>
       )}
     </group>
@@ -1012,37 +1042,52 @@ export const DebugLandmark: React.FC<DebugLandmarkProps> = ({ position, number, 
 
   if (!showDebugCheckpoints) return null;
 
+  // Modulo styling for diverse colorful signs
+  const colors = ['#ff007f', '#bd00ff', '#00e5ff', '#39ff14', '#ffd60a'];
+  const baseColor = colors[number % colors.length];
+
   return (
     <group position={position}>
-      {/* Wooden/Stone post */}
-      <mesh castShadow position={[0, 1.2, 0]}>
-        <cylinderGeometry args={[0.08, 0.09, 2.4, 8]} />
-        <meshStandardMaterial color="#8b5a2b" roughness={0.8} /> {/* brown post */}
+      {/* Thick Inflatable/Cartoon Post */}
+      <mesh castShadow position={[0, 1.0, 0]}>
+        <cylinderGeometry args={[0.12, 0.16, 2.0, 12]} />
+        <meshStandardMaterial color="#ffe57f" roughness={0.4} metalness={0.1} />
       </mesh>
       
-      {/* Small base rock support */}
-      <mesh position={[0, 0.05, 0]}>
-        <cylinderGeometry args={[0.22, 0.25, 0.1, 8]} />
-        <meshStandardMaterial color="#7f8c8d" roughness={0.9} />
+      {/* Soft rounded base column ring */}
+      <mesh position={[0, 0.08, 0]}>
+        <cylinderGeometry args={[0.3, 0.35, 0.16, 12]} />
+        <meshStandardMaterial color="#f06292" roughness={0.5} />
       </mesh>
 
       {/* Floating Billboard Number */}
-      <Billboard position={[0, 2.8, 0]}>
-        {/* Signboard Backing */}
-        <mesh castShadow>
-          <planeGeometry args={[0.85, 0.6]} />
-          <meshBasicMaterial color="#bd00ff" toneMapped={false} /> {/* neon purple */}
-        </mesh>
-        
-        {/* High contrast border */}
-        <mesh position={[0, 0, -0.01]}>
-          <planeGeometry args={[0.91, 0.66]} />
-          <meshBasicMaterial color="#ffffff" toneMapped={false} />
+      <Billboard position={[0, 2.4, 0]}>
+        {/* White Border Signboard backing */}
+        <mesh castShadow position={[0, 0, -0.02]}>
+          <boxGeometry args={[1.05, 0.75, 0.1]} />
+          <meshStandardMaterial color="#ffffff" roughness={0.3} />
         </mesh>
 
+        {/* Inner Colored Signboard */}
+        <mesh castShadow position={[0, 0, 0]}>
+          <boxGeometry args={[0.95, 0.65, 0.11]} />
+          <meshStandardMaterial color={baseColor} roughness={0.3} metalness={0.2} />
+        </mesh>
+        
+        {/* Cute decorative balloon attachment */}
+        <mesh position={[0.55, -0.25, -0.05]}>
+          <sphereGeometry args={[0.16, 10, 10]} />
+          <meshStandardMaterial color="#ff4081" roughness={0.2} />
+        </mesh>
+        <mesh position={[-0.55, -0.25, -0.05]}>
+          <sphereGeometry args={[0.16, 10, 10]} />
+          <meshStandardMaterial color="#00e5ff" roughness={0.2} />
+        </mesh>
+
+        {/* Large Floating Number */}
         <Text
-          position={[0, 0.08, 0.02]}
-          fontSize={0.34}
+          position={[0, 0.08, 0.07]}
+          fontSize={0.36}
           color="#ffffff"
           anchorX="center"
           anchorY="middle"
@@ -1051,10 +1096,11 @@ export const DebugLandmark: React.FC<DebugLandmarkProps> = ({ position, number, 
           {number}
         </Text>
 
+        {/* Internal ID Label */}
         <Text
-          position={[0, -0.18, 0.02]}
-          fontSize={0.11}
-          color="#ffd60a"
+          position={[0, -0.18, 0.07]}
+          fontSize={0.12}
+          color="#ffffff"
           anchorX="center"
           anchorY="middle"
           fontWeight={800}
@@ -1114,6 +1160,204 @@ export const SlimeSplash: React.FC<{ position: [number, number, number]; color?:
         </bufferGeometry>
         <pointsMaterial size={0.2} color={color} sizeAttenuation transparent opacity={0.8} />
       </points>
+    </group>
+  );
+};
+
+// Windmill Obstacle (stands vertically, spins in X-Y plane)
+interface WindmillProps {
+  position: [number, number, number];
+  speed: number;
+  color?: string;
+}
+
+export const Windmill: React.FC<WindmillProps> = ({ position, speed, color = '#ffd60a' }) => {
+  const rigidBodyRef = useRef<RapierRigidBody>(null);
+
+  useFrame((state) => {
+    const rb = rigidBodyRef.current;
+    if (!rb) return;
+
+    const time = state.clock.getElapsedTime();
+    // Rotate around Z axis (X-Y plane)
+    const angle = time * speed;
+    const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), angle);
+    rb.setNextKinematicRotation(q);
+  });
+
+  return (
+    <group position={position}>
+      {/* Static vertical pillar support */}
+      <RigidBody type="fixed" colliders={false}>
+        <CylinderCollider args={[2.0, 0.22]} position={[0, -1.8, -0.6]} />
+        {/* Support pillar centered behind the blades */}
+        <mesh castShadow position={[0, -1.8, -0.6]}>
+          <cylinderGeometry args={[0.2, 0.25, 4.0, 12]} />
+          <meshStandardMaterial color="#4f5b66" roughness={0.5} metalness={0.8} />
+        </mesh>
+      </RigidBody>
+
+      {/* Kinematic rotating Hub and Blades */}
+      <RigidBody ref={rigidBodyRef} type="kinematicPosition" colliders={false} name="windmill-blade" friction={1.0} restitution={1.2}>
+        {/* Hub */}
+        <mesh castShadow position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.45, 0.45, 0.5, 16]} />
+          <meshStandardMaterial color="#343d46" roughness={0.3} metalness={0.7} />
+        </mesh>
+
+        {/* 4 Blades (extending in cross shape in X-Y plane) */}
+        {/* Blade 1 (UP) */}
+        <group rotation={[0, 0, 0]} position={[0, 1.3, 0]}>
+          <CuboidCollider args={[0.2, 1.1, 0.15]} />
+          <mesh castShadow>
+            <boxGeometry args={[0.4, 2.2, 0.3]} />
+            <meshStandardMaterial color={color} roughness={0.2} metalness={0.2} />
+          </mesh>
+          {/* Visual detailing */}
+          <mesh position={[0, 0, 0.16]}>
+            <boxGeometry args={[0.3, 2.0, 0.02]} />
+            <meshStandardMaterial color="#ff007f" roughness={0.2} />
+          </mesh>
+        </group>
+
+        {/* Blade 2 (RIGHT) */}
+        <group rotation={[0, 0, -Math.PI / 2]} position={[1.3, 0, 0]}>
+          <CuboidCollider args={[0.2, 1.1, 0.15]} />
+          <mesh castShadow>
+            <boxGeometry args={[0.4, 2.2, 0.3]} />
+            <meshStandardMaterial color={color} roughness={0.2} metalness={0.2} />
+          </mesh>
+          <mesh position={[0, 0, 0.16]}>
+            <boxGeometry args={[0.3, 2.0, 0.02]} />
+            <meshStandardMaterial color="#ff007f" roughness={0.2} />
+          </mesh>
+        </group>
+
+        {/* Blade 3 (DOWN) */}
+        <group rotation={[0, 0, Math.PI]} position={[0, -1.3, 0]}>
+          <CuboidCollider args={[0.2, 1.1, 0.15]} />
+          <mesh castShadow>
+            <boxGeometry args={[0.4, 2.2, 0.3]} />
+            <meshStandardMaterial color={color} roughness={0.2} metalness={0.2} />
+          </mesh>
+          <mesh position={[0, 0, 0.16]}>
+            <boxGeometry args={[0.3, 2.0, 0.02]} />
+            <meshStandardMaterial color="#ff007f" roughness={0.2} />
+          </mesh>
+        </group>
+
+        {/* Blade 4 (LEFT) */}
+        <group rotation={[0, 0, Math.PI / 2]} position={[-1.3, 0, 0]}>
+          <CuboidCollider args={[0.2, 1.1, 0.15]} />
+          <mesh castShadow>
+            <boxGeometry args={[0.4, 2.2, 0.3]} />
+            <meshStandardMaterial color={color} roughness={0.2} metalness={0.2} />
+          </mesh>
+          <mesh position={[0, 0, 0.16]}>
+            <boxGeometry args={[0.3, 2.0, 0.02]} />
+            <meshStandardMaterial color="#ff007f" roughness={0.2} />
+          </mesh>
+        </group>
+      </RigidBody>
+    </group>
+  );
+};
+
+// Cartoon Drifting Cloud
+interface DriftingCloudProps {
+  position: [number, number, number];
+  scale?: number;
+  speed?: number;
+}
+
+export const DriftingCloud: React.FC<DriftingCloudProps> = ({ position, scale = 1.0, speed = 0.6 }) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const startPos = useRef(new THREE.Vector3(...position));
+
+  useFrame((state, delta) => {
+    if (!groupRef.current) return;
+    // Drift along Z
+    groupRef.current.position.z += delta * speed;
+    
+    // Wrap around once Z goes past 160 (restarts at -30)
+    if (groupRef.current.position.z > 165.0) {
+      groupRef.current.position.z = -30.0;
+    }
+  });
+
+  return (
+    <group ref={groupRef} position={startPos.current} scale={[scale, scale, scale]}>
+      {/* Puffy clouds meshes */}
+      <mesh castShadow>
+        <sphereGeometry args={[2.0, 10, 10]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.9} emissive="#ffffff" emissiveIntensity={0.03} />
+      </mesh>
+      <mesh position={[1.5, -0.2, 0.3]} castShadow>
+        <sphereGeometry args={[1.3, 8, 8]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.9} />
+      </mesh>
+      <mesh position={[-1.4, -0.1, -0.2]} castShadow>
+        <sphereGeometry args={[1.4, 8, 8]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.9} />
+      </mesh>
+      <mesh position={[0.2, 0.4, 1.2]} castShadow>
+        <sphereGeometry args={[1.0, 8, 8]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.9} />
+      </mesh>
+    </group>
+  );
+};
+
+// Rolling candy landscape hill with topographic contours
+interface CandyHillProps {
+  position: [number, number, number];
+  radius: number;
+  color?: string;
+}
+
+export const CandyHill: React.FC<CandyHillProps> = ({ position, radius, color = '#8ae960' }) => {
+  return (
+    <group position={position}>
+      {/* Main Hill sphere */}
+      <mesh receiveShadow castShadow>
+        <sphereGeometry args={[radius, 20, 20]} />
+        <meshStandardMaterial color={color} roughness={0.95} />
+      </mesh>
+
+      {/* Styled Topographic Contour Lines - White rings wrapping the hill */}
+      <mesh position={[0, radius * 0.3, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[radius * 0.7, 0.05, 8, 32]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.35} />
+      </mesh>
+      <mesh position={[0, radius * 0.65, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[radius * 0.45, 0.04, 8, 32]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.35} />
+      </mesh>
+    </group>
+  );
+};
+
+// Snow-capped pink mountains
+interface CandyMountainProps {
+  position: [number, number, number];
+  radius: number;
+  height: number;
+}
+
+export const CandyMountain: React.FC<CandyMountainProps> = ({ position, radius, height }) => {
+  return (
+    <group position={position}>
+      {/* Pink mountain base */}
+      <mesh castShadow receiveShadow>
+        <coneGeometry args={[radius, height, 5, 1]} />
+        <meshStandardMaterial color="#ffb7b2" roughness={0.9} />
+      </mesh>
+
+      {/* Snow cap */}
+      <mesh position={[0, height * 0.325, 0]}>
+        <coneGeometry args={[radius * 0.35, height * 0.35, 5, 1]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.8} />
+      </mesh>
     </group>
   );
 };

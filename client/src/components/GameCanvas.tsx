@@ -8,6 +8,7 @@ import { BotManager } from './BotManager';
 import { CameraController } from './CameraController';
 import { useGameStore } from '../store/useGameStore';
 import { getThemeConfig } from '../utils/themeManager';
+import { WeatherController } from './WeatherController';
 
 export const GameCanvas: React.FC = () => {
   const theme = useGameStore((state) => state.visualTheme);
@@ -19,26 +20,8 @@ export const GameCanvas: React.FC = () => {
         shadows
         camera={{ fov: 60, near: 0.1, far: 250, position: [0, 5, 8] }}
       >
-        {/* Fog system matching the visual theme */}
-        <fog attach="fog" args={[config.fogColor, 10, 160]} />
-
-        {/* Lights */}
-        <ambientLight color={config.ambientColor} intensity={config.ambientIntensity} />
-        
-        <directionalLight
-          castShadow
-          position={config.skyColor}
-          intensity={1.2}
-          shadow-mapSize-width={1024} // Optimized shadow maps for spawning multiple bots at stable 60 FPS
-          shadow-mapSize-height={1024}
-          shadow-camera-near={0.5}
-          shadow-camera-far={180}
-          shadow-camera-left={-40}
-          shadow-camera-right={40}
-          shadow-camera-top={40}
-          shadow-camera-bottom={-40}
-          shadow-bias={-0.0005}
-        />
+        {/* Dynamic Weather, Seasonal Biomes, Lighting & Particles */}
+        <WeatherController />
 
         {/* Soft fill light from bottom/sides */}
         <pointLight position={[-20, -5, -20]} intensity={0.5} color={config.obstacleColor2} />

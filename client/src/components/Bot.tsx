@@ -16,31 +16,83 @@ export interface BotProps {
 }
 
 // Handcrafted navigation node lists for Levels 1-5 & mini-games
-const LEVEL_1_NODES: Array<[number, number, number]> = [
+const LEVEL_1_LEFT_PATH: [number, number, number][] = [
   [0, 0, 0],
   [0, 0, 5],
-  [0, 0, 10],      // Walkway hurdle
-  [0, 0, 15],
-  [0, 0, 20],      // Checkpoint 1
-  [-1.0, 0, 24.5],  // Zig-zag platform 1 (Tilting deck)
-  [1.0, 0.1, 28.2], // Platform A (Fixed)
-  [-0.8, 0.35, 31.8], // Platform B (Moving X)
-  [0.8, 0.6, 35.4], // Platform C (Fixed)
-  [-0.8, 0.85, 39.0], // Platform D (Moving Z)
-  [0, 1.0, 42.6],    // Checkpoint 2
-  [0, 1.05, 44.5],   // Power Jump Pad!
-  [0, 7.5, 60.0],    // Landing deck after launch
-  [-3.0, 9.5, 68.0], // Vertical storey 2 (ice)
-  [3.0, 11.5, 74.0], // Vertical storey 3
-  [0, 13.5, 80],   // Checkpoint 3 (storey 4)
-  [0, 9.0, 88],    // Ice slide
-  [0, 4.5, 98],    // Slide landing mud
-  [0, 4.5, 104],   // Middle sweepers
-  [0, 4.5, 110],   // Checkpoint 4
-  [0, 4.5, 115],   // Speed boost lane
-  [0, 1.5, 130],   // Slanted final ramp
-  [0, -1.8, 145.5] // Finish Archway
+  [0, 0, 10],
+  [-4.5, 0, 15.0],  // Left lane entry
+  [-4.5, 0, 26.5],  // Left grass walkway
+  [-4.5, 0.5, 33.0], // Left mud area
+  [0, 1.0, 42.6],    // Merge Checkpoint 2
+  [0, 1.05, 44.5],   // Power Jump Pad
+  [0, 7.5, 60.0],    // Landing deck Storey 1
+  [-3.0, 7.9, 63.5], // Ice platform left Storey 2
+  [0, 10.3, 73.0],   // Checkpoint 3 Storey 4
+  [-4.0, 8.5, 76.0], // Left water slide entry
+  [-4.0, 5.0, 83.0], // Left water slide mid
+  [0, 4.1, 88.0],    // Slide landing deck
+  [0, 5.2, 94.0],    // Walkway
+  [0, 4.5, 100.0],   // Checkpoint 4
+  [-2.0, 4.5, 105.0], // Left lane flat road
+  [-2.0, 5.2, 109.0], // Left side platform
+  [0, 1.1, 120.0],   // Speed slide
+  [0, -1.8, 128.0],  // Final rotating sweeper
+  [0, -2.4, 135.0]   // Finish Archway
 ];
+
+const LEVEL_1_MIDDLE_PATH: [number, number, number][] = [
+  [0, 0, 0],
+  [0, 0, 5],
+  [0, 0, 10],
+  [0, 0, 15],
+  [-1.0, 0.1, 24.5], // Tilting deck
+  [1.0, 0.1, 28.2],  // Platform A
+  [-0.8, 0.35, 31.8], // Platform B
+  [0.8, 0.6, 35.4],  // Platform C
+  [-0.8, 0.85, 39.0], // Platform D
+  [0, 1.0, 42.6],    // Checkpoint 2
+  [0, 1.05, 44.5],   // Power Jump Pad
+  [0, 7.5, 60.0],    // Landing deck Storey 1
+  [0, 7.5, 60.0],    // Stay in center
+  [0, 10.3, 73.0],   // Checkpoint 3 Storey 4
+  [0.0, 8.5, 76.0],  // Middle slide entry
+  [0.0, 5.0, 83.0],  // Middle slide mid
+  [0, 4.1, 88.0],    // Slide landing deck
+  [0, 5.2, 94.0],    // Walkway
+  [0, 4.5, 100.0],   // Checkpoint 4
+  [0.0, 4.5, 105.0], // Middle lane road
+  [0.0, 5.2, 109.0], // Middle moving gate
+  [0, 1.1, 120.0],   // Speed slide
+  [0, -1.8, 128.0],  // Final rotating sweeper
+  [0, -2.4, 135.0]   // Finish Archway
+];
+
+const LEVEL_1_RIGHT_PATH: [number, number, number][] = [
+  [0, 0, 0],
+  [0, 0, 5],
+  [0, 0, 10],
+  [4.5, 0, 15.0],   // Right lane entry
+  [4.5, 0.1, 22.5],  // Right moving platform
+  [4.5, 0.4, 28.0],  // Speed pad right
+  [4.5, 0.1, 34.0],  // Hammer platform
+  [0, 1.0, 42.6],    // Checkpoint 2
+  [0, 1.05, 44.5],   // Power Jump Pad
+  [0, 7.5, 60.0],    // Landing deck Storey 1
+  [3.0, 9.1, 68.0],  // Moving platform right Storey 3
+  [0, 10.3, 73.0],   // Checkpoint 3 Storey 4
+  [4.0, 8.5, 76.0],  // Right slide entry
+  [4.0, 5.0, 83.0],  // Right slide mid
+  [0, 4.1, 88.0],    // Slide landing deck
+  [0, 5.2, 94.0],    // Walkway
+  [0, 4.5, 100.0],   // Checkpoint 4
+  [2.0, 4.5, 105.0], // Right shortcut entry
+  [0.0, 4.1, 112.5], // Narrow balance beam
+  [0, 1.1, 120.0],   // Speed slide
+  [0, -1.8, 128.0],  // Final rotating sweeper
+  [0, -2.4, 135.0]   // Finish Archway
+];
+
+const LEVEL_1_NODES = LEVEL_1_MIDDLE_PATH;
 
 const LEVEL_2_NODES: Array<[number, number, number]> = [
   [0, 0, 0], [0, 0, 6], [-2, 0, 7], [0, 0, 12.5], [2, 0, 18], [0, 0, 27.5],
@@ -77,6 +129,7 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
   const rightLegRef = useRef<THREE.Group>(null);
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
+  const trailMeshRef = useRef<THREE.Mesh>(null);
 
   const { rapier, world } = useRapier();
   const phase = useGameStore((state) => state.phase);
@@ -106,6 +159,8 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
   const isGroundedRef = useRef(false);
   const jumpCooldown = useRef(0);
   const jumpCountRef = useRef(0);
+  const landingSquish = useRef(0);
+  const wasGrounded = useRef(true);
   
   // Knockback states
   const knockbackTimerRef = useRef(0);
@@ -119,6 +174,8 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
   
   // Base running speeds
   const botSpeed = useRef(difficulty === 'EASY' ? 3.5 : difficulty === 'MEDIUM' ? 4.2 : 4.9);
+  const botPath = useRef<[number, number, number][]>(LEVEL_1_MIDDLE_PATH);
+  const windmillMistakeFlag = useRef<boolean | null>(null);
 
   useEffect(() => {
     if (phase === 'PLAYING' || phase === 'ROUND_INTRO') {
@@ -135,6 +192,17 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       nitroCooldown.current = 0;
       nitroDuration.current = 0;
       wasNitroActiveRef.current = false;
+
+      // Assign bot branching path choices based on ID
+      const botIndex = parseInt(id.replace(/\D/g, '')) || 0;
+      const pathChoice = botIndex % 3;
+      if (pathChoice === 0) {
+        botPath.current = LEVEL_1_LEFT_PATH;
+      } else if (pathChoice === 1) {
+        botPath.current = LEVEL_1_MIDDLE_PATH;
+      } else {
+        botPath.current = LEVEL_1_RIGHT_PATH;
+      }
       
       const widthSpread = difficulty === 'EASY' ? 1.4 : difficulty === 'MEDIUM' ? 0.7 : 0.2;
       targetOffset.current.set(
@@ -363,9 +431,16 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
     let accelerationRatio = isGroundedRef.current ? 0.15 : 0.06;
     let jumpImpulse = 6.2;
 
+    const isSliding = currentSurface === 'slide' || currentSurface === 'speed-ramp';
+
     if (isNitroActive.current) {
       activeSpeed *= 1.48; // 48% speed boost
       accelerationRatio = Math.min(1.0, accelerationRatio * 1.8);
+    }
+
+    if (isSliding) {
+      activeSpeed = 9.2; // Slide momentum
+      accelerationRatio = 0.045; // lower control
     }
 
     if (currentSurface === 'ice') {
@@ -383,6 +458,26 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
     const isNearGap = (currentLevelId === 'race_2' && pos.z > 7.5 && pos.z < 9.5) || (currentLevelId === 'race_2' && pos.z > 22.5 && pos.z < 24.5);
     if (isNearGap && (difficulty === 'EASY' || difficulty === 'MEDIUM') && Math.random() < 0.25) {
       activeSpeed *= 0.65;
+    }
+
+    // Windmill timing check for bots passing on the right path (X > 1.2, 64.0 < Z < 69.5)
+    if (currentLevelId === 'race_1' && pos.x > 1.2 && pos.z > 64.0 && pos.z < 69.5) {
+      if (windmillMistakeFlag.current === null) {
+        const threshold = difficulty === 'EASY' ? 0.35 : difficulty === 'MEDIUM' ? 0.12 : 0.02;
+        windmillMistakeFlag.current = Math.random() < threshold;
+      }
+
+      if (windmillMistakeFlag.current === false) {
+        const time = state.clock.getElapsedTime();
+        const bladeSweepAngle = Math.abs(Math.sin(time * 1.8 * 2.0));
+        if (bladeSweepAngle > 0.65) {
+          activeSpeed = 0; // pause and wait
+        }
+      }
+    } else {
+      if (pos.z > 69.5) {
+        windmillMistakeFlag.current = null;
+      }
     }
 
     // 4b. Wind Zone detection
@@ -415,7 +510,10 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
 
     if (currentLevelType === 'RACE' || currentLevelId === 'logic_2' || currentLevelId === 'final_2') {
       // Path steering for races and courses
-      const pathNodes = LEVEL_PATHS[currentLevelId] || LEVEL_1_NODES;
+      let pathNodes = LEVEL_PATHS[currentLevelId] || LEVEL_1_MIDDLE_PATH;
+      if (currentLevelId === 'race_1') {
+        pathNodes = botPath.current;
+      }
       const targetNode = pathNodes[currentNodeIndex.current];
 
       if (targetNode) {
@@ -720,7 +818,32 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
     const nextVelX = THREE.MathUtils.lerp(vel.x, moveTargetX + windForceX, accelerationRatio);
     const nextVelZ = THREE.MathUtils.lerp(vel.z, moveTargetZ + windForceZ + conveyorSpeed, accelerationRatio);
 
+    // Apply snappy downward gravity when falling
+    if (moveTargetY < 0) {
+      moveTargetY -= delta * 14.0;
+      moveTargetY = Math.max(moveTargetY, -20.0);
+    }
+
     rb.setLinvel({ x: nextVelX, y: moveTargetY, z: nextVelZ }, true);
+
+    // Update trail mesh visibility and color dynamically
+    if (trailMeshRef.current) {
+      const showTrail = isNitroActive.current || isSliding;
+      trailMeshRef.current.visible = showTrail;
+      if (showTrail) {
+        let colorStr = "#ff007f"; // pink nitro
+        if (!isNitroActive.current) {
+          if (pos.x < -2.0) {
+            colorStr = "#0066ff"; // water slide (blue)
+          } else if (pos.x > 2.0) {
+            colorStr = "#ffffff"; // ice slide (white)
+          } else {
+            colorStr = "#ffd60a"; // rainbow slide (gold)
+          }
+        }
+        (trailMeshRef.current.material as THREE.MeshBasicMaterial).color.set(colorStr);
+      }
+    }
 
     // Rotate bot visual mesh
     if (steerDir.lengthSq() > 0.01 && visualGroupRef.current) {
@@ -728,8 +851,16 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       let diff = targetRot - visualGroupRef.current.rotation.y;
       while (diff < -Math.PI) diff += Math.PI * 2;
       while (diff > Math.PI) diff -= Math.PI * 2;
-      visualGroupRef.current.rotation.y += diff * 0.15;
+      visualGroupRef.current.rotation.y += diff * Math.min(1.0, 10.0 * delta);
     }
+
+    // Track landing squish
+    const justLanded = isGroundedRef.current && !wasGrounded.current;
+    wasGrounded.current = isGroundedRef.current;
+    if (justLanded) {
+      landingSquish.current = 0.35;
+    }
+    landingSquish.current = THREE.MathUtils.lerp(landingSquish.current, 0, delta * 12.0);
 
     // Leg/arm swing waddles
     const speed = new THREE.Vector3(vel.x, 0, vel.z).length();
@@ -740,7 +871,9 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
     const rArm = rightArmRef.current;
 
     if (visual && lLeg && rLeg && lArm && rArm) {
-      visual.scale.set(0.6, 0.6, 0.6);
+      const squishXZ = 1.0 + landingSquish.current * 0.4;
+      const squishY = 1.0 - landingSquish.current * 0.75;
+      visual.scale.set(0.6 * squishXZ, 0.6 * squishY, 0.6 * squishXZ);
       visual.rotation.x = 0;
       visual.rotation.z = 0;
       lLeg.rotation.set(0, 0, 0);
@@ -749,22 +882,34 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       rArm.rotation.set(0, 0, -0.15);
       visual.position.y = -0.12;
 
-      if (!isGroundedRef.current) {
+      if (isSliding) {
+        // Slide pose: lean forward, arms out, feet back
+        visual.rotation.x = Math.PI / 4.5;
+        lLeg.rotation.x = 0.4;
+        rLeg.rotation.x = 0.4;
+        lArm.rotation.set(-0.4, 0, 0.5);
+        rArm.rotation.set(-0.4, 0, -0.5);
+        visual.position.y = -0.2;
+      } else if (!isGroundedRef.current) {
         visual.scale.set(0.54, 0.69, 0.54);
         const flail = 22;
         lLeg.rotation.x = Math.sin(state.clock.getElapsedTime() * flail) * 0.5;
         rLeg.rotation.x = Math.cos(state.clock.getElapsedTime() * flail) * 0.5;
         lArm.rotation.z = -Math.PI/3 + Math.sin(state.clock.getElapsedTime() * flail) * 0.4;
         rArm.rotation.z = Math.PI/3 + Math.cos(state.clock.getElapsedTime() * flail) * 0.4;
-      } else if (speed > 0.3) {
-        const waddleFreq = Math.max(12, speed * 2.8);
-        lLeg.rotation.x = Math.sin(state.clock.getElapsedTime() * waddleFreq) * 0.5;
-        rLeg.rotation.x = -Math.sin(state.clock.getElapsedTime() * waddleFreq) * 0.5;
-        lArm.rotation.x = -Math.sin(state.clock.getElapsedTime() * waddleFreq) * 0.5;
-        rArm.rotation.x = Math.sin(state.clock.getElapsedTime() * waddleFreq) * 0.5;
+      } else if (speed > 0.1) {
+        const walkRunBlend = Math.min(1.0, speed / 4.8);
+        const waddleFreq = 5.0 + walkRunBlend * 10.0;
+        const legSwing = Math.sin(state.clock.getElapsedTime() * waddleFreq) * 0.55 * walkRunBlend;
+        const armSwing = Math.sin(state.clock.getElapsedTime() * waddleFreq) * 0.6 * walkRunBlend;
+
+        lLeg.rotation.x = legSwing;
+        rLeg.rotation.x = -legSwing;
+        lArm.rotation.x = -armSwing;
+        rArm.rotation.x = armSwing;
         
-        visual.position.y = -0.12 + Math.abs(Math.sin(state.clock.getElapsedTime() * waddleFreq)) * 0.12;
-        visual.rotation.z = Math.sin(state.clock.getElapsedTime() * waddleFreq) * 0.08;
+        visual.position.y = -0.12 + Math.abs(Math.sin(state.clock.getElapsedTime() * waddleFreq)) * 0.12 * walkRunBlend;
+        visual.rotation.z = Math.sin(state.clock.getElapsedTime() * waddleFreq) * 0.08 * walkRunBlend;
       } else {
         const breathing = 2.5;
         visual.position.y = -0.12 + Math.sin(state.clock.getElapsedTime() * breathing) * 0.03;
@@ -789,7 +934,7 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       userData={{ id }}
       onCollisionEnter={(event) => {
         const other = event.other.rigidBodyObject;
-        if (other && other.name === 'rotating-arm') {
+        if (other && (other.name === 'rotating-arm' || other.name === 'windmill-blade')) {
           const botPos = rigidBodyRef.current!.translation();
           const otherPos = other.position;
           const dir = new THREE.Vector3(botPos.x - otherPos.x, 0.2, botPos.z - otherPos.z).normalize();
@@ -871,12 +1016,10 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
 
       </group>
 
-      {isNitroActive.current && (
-        <mesh position={[0, -0.4, -0.3]}>
-          <boxGeometry args={[0.4, 0.05, 0.6]} />
-          <meshBasicMaterial color="#ff007f" transparent opacity={0.6} /> {/* Pink speed trail */}
-        </mesh>
-      )}
+      <mesh ref={trailMeshRef} position={[0, -0.4, -0.3]} visible={false}>
+        <boxGeometry args={[0.4, 0.05, 0.6]} />
+        <meshBasicMaterial transparent opacity={0.65} />
+      </mesh>
 
       {/* Billboard name label above bot head */}
       <Billboard position={[0, 0.9, 0]}>

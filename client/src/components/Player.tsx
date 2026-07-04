@@ -8,13 +8,16 @@ import { useGameStore } from '../store/useGameStore';
 import { audioManager } from '../utils/audioManager';
 import { getRacerProgressValue } from '../utils/progress';
 
+import { LEVEL_1_LANDMARKS } from '../utils/landmarks';
+
 export const Player: React.FC = () => {
   const controls = useGameControls();
-  const { lastCheckpoint, phase, triggerWin, triggerLoss } = useGameStore();
+  const { lastCheckpoint, phase, triggerWin, triggerLoss, showDebugCheckpoints } = useGameStore();
   const isNitroActive = useGameStore((state) => state.isNitroActive);
   const nitroCooldown = useGameStore((state) => state.nitroCooldown);
   const triggerNitro = useGameStore((state) => state.triggerNitro);
   const tickNitro = useGameStore((state) => state.tickNitro);
+  const setPlayerSliding = useGameStore((state) => state.setPlayerSliding);
 
   const wasNitroActiveRef = useRef(false);
   const nitroTrailParticles = useRef<Array<{ pos: THREE.Vector3; age: number }>>([]);
@@ -38,6 +41,9 @@ export const Player: React.FC = () => {
   const rightLegRef = useRef<THREE.Group>(null);
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
+  const landingSquish = useRef(0);
+  const wasGrounded = useRef(true);
+  const devTimer = useRef(0);
 
   const customization = useGameStore((state) => state.customization);
 
@@ -146,6 +152,30 @@ export const Player: React.FC = () => {
     if (!rigidBody) return;
 
     const pos = rigidBody.translation();
+
+    // Dev landmarks calculation (throttled to every 0.12 seconds for performance)
+    if (showDebugCheckpoints && currentLevelId === 'race_1') {
+      devTimer.current += delta;
+      if (devTimer.current > 0.12) {
+        devTimer.current = 0;
+        let nearestIdx = -1;
+        let minDist = Infinity;
+        for (let i = 0; i < LEVEL_1_LANDMARKS.length; i++) {
+          const lm = LEVEL_1_LANDMARKS[i];
+          const dx = pos.x - lm.pos[0];
+          const dy = pos.y - lm.pos[1];
+          const dz = pos.z - lm.pos[2];
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          if (dist < minDist) {
+            minDist = dist;
+            nearestIdx = i;
+          }
+        }
+        if (nearestIdx !== -1) {
+          useGameStore.getState().setDevLandmarkInfo(nearestIdx, minDist);
+        }
+      }
+    }
 
     // Trigger forward boost impulse on activation
     const justActivatedNitro = isNitroActive && !wasNitroActiveRef.current;
@@ -289,16 +319,18 @@ export const Player: React.FC = () => {
         audioManager.playMudSplat();
         mudSoundTimer.current = 0.22; // Loop mud squelches
       }
-    } else if (currentSurface === 'speed-ramp') {
-      // Speed ramp surface: slide down with high speed and low control!
-      accelerationRatio = 0.06;
-      moveSpeed = 8.5;
+    } else if (currentSurface === 'speed-ramp' || currentSurface === 'slide') {
+      // Slide surface: slide down with extremely high speed and low steering!
+      accelerationRatio = 0.045;
+      moveSpeed = 9.2;
       slideSoundTimer.current -= delta;
       if (slideSoundTimer.current <= 0 && isGroundedRef.current) {
         audioManager.playIceSlide();
         slideSoundTimer.current = 0.12;
       }
     }
+
+    setPlayerSliding(currentSurface === 'slide' || currentSurface === 'speed-ramp');
 
     // 4b. Wind Zone detection
     let windForceX = 0;
@@ -398,10 +430,17 @@ export const Player: React.FC = () => {
       }
     }
 
+    // Apply snappy downward gravity when falling
+    if (nextVelY < 0) {
+      nextVelY -= delta * 14.0;
+      nextVelY = Math.max(nextVelY, -20.0);
+    }
+
     rigidBody.setLinvel({ x: nextVelX, y: nextVelY, z: nextVelZ }, true);
 
-    // Update Nitro particle trail
-    if (isNitroActive && Math.random() < 0.6) {
+    // Update Nitro and Slide particle trail
+    const isSliding = currentSurface === 'slide' || currentSurface === 'speed-ramp';
+    if ((isNitroActive || isSliding) && Math.random() < 0.7) {
       nitroTrailParticles.current.push({
         pos: new THREE.Vector3(pos.x + (Math.random() - 0.5) * 0.35, pos.y - 0.45, pos.z + (Math.random() - 0.5) * 0.35),
         age: 0
@@ -426,6 +465,19 @@ export const Player: React.FC = () => {
         }
       });
       geom.attributes.position.needsUpdate = true;
+
+      // Adjust particle colors dynamically based on surface/mode
+      let colorStr = '#00e5ff'; // cyan nitro
+      if (isSliding) {
+        if (pos.x < -2.0) {
+          colorStr = '#0066ff'; // water slide (blue)
+        } else if (pos.x > 2.0) {
+          colorStr = '#ffffff'; // ice slide (white)
+        } else {
+          colorStr = '#ffd60a'; // rainbow slide (gold/yellow)
+        }
+      }
+      (trailPointsRef.current.material as THREE.PointsMaterial).color.set(colorStr);
     }
 
     // Rotate player visuals
@@ -437,8 +489,17 @@ export const Player: React.FC = () => {
       while (diff < -Math.PI) diff += Math.PI * 2;
       while (diff > Math.PI) diff -= Math.PI * 2;
       
-      visualGroupRef.current.rotation.y += diff * 0.18;
+      visualGroupRef.current.rotation.y += diff * Math.min(1.0, 12.0 * delta);
     }
+
+    // Track landing squish
+    const justLanded = isGroundedRef.current && !wasGrounded.current;
+    wasGrounded.current = isGroundedRef.current;
+    if (justLanded) {
+      landingSquish.current = 0.35;
+      audioManager.playLand();
+    }
+    landingSquish.current = THREE.MathUtils.lerp(landingSquish.current, 0, delta * 12.0);
 
     // 6. Procedural Animations states
     const clockTime = state.clock.getElapsedTime();
@@ -451,7 +512,9 @@ export const Player: React.FC = () => {
     const rArm = rightArmRef.current;
 
     if (visual && lLeg && rLeg && lArm && rArm) {
-      visual.scale.set(0.6, 0.6, 0.6);
+      const squishXZ = 1.0 + landingSquish.current * 0.4;
+      const squishY = 1.0 - landingSquish.current * 0.75;
+      visual.scale.set(0.6 * squishXZ, 0.6 * squishY, 0.6 * squishXZ);
       visual.rotation.x = 0;
       visual.rotation.z = 0;
       lLeg.rotation.set(0, 0, 0);
@@ -476,6 +539,14 @@ export const Player: React.FC = () => {
         lArm.rotation.x = -1.2;
         rArm.rotation.x = -1.2;
         visual.position.y = -0.22;
+      } else if (currentSurface === 'slide' || currentSurface === 'speed-ramp') {
+        // Slide pose: lean forward, arms out, feet back
+        visual.rotation.x = Math.PI / 4.5;
+        lLeg.rotation.x = 0.4;
+        rLeg.rotation.x = 0.4;
+        lArm.rotation.set(-0.4, 0, 0.5);
+        rArm.rotation.set(-0.4, 0, -0.5);
+        visual.position.y = -0.2;
       } else if (!isGroundedRef.current) {
         visual.scale.set(0.54, 0.69, 0.54);
         const flailFreq = 22;
@@ -492,14 +563,18 @@ export const Player: React.FC = () => {
         rArm.rotation.x = -Math.PI / 2;
         rArm.rotation.y = -0.15;
         visual.position.y = -0.12 + Math.abs(Math.sin(clockTime * waddleFreq)) * 0.05;
-      } else if (speed > 0.3) {
-        const runningFreq = Math.max(12, speed * 2.8);
-        lLeg.rotation.x = Math.sin(clockTime * runningFreq) * 0.5;
-        rLeg.rotation.x = -Math.sin(clockTime * runningFreq) * 0.5;
-        lArm.rotation.x = -Math.sin(clockTime * runningFreq) * 0.6;
-        rArm.rotation.x = Math.sin(clockTime * runningFreq) * 0.6;
-        visual.position.y = -0.12 + Math.abs(Math.sin(clockTime * runningFreq)) * 0.12;
-        visual.rotation.z = Math.sin(clockTime * runningFreq) * 0.08;
+      } else if (speed > 0.1) {
+        const walkRunBlend = Math.min(1.0, speed / 4.8);
+        const runningFreq = 5.0 + walkRunBlend * 10.0;
+        const legSwing = Math.sin(clockTime * runningFreq) * 0.55 * walkRunBlend;
+        const armSwing = Math.sin(clockTime * runningFreq) * 0.6 * walkRunBlend;
+
+        lLeg.rotation.x = legSwing;
+        rLeg.rotation.x = -legSwing;
+        lArm.rotation.x = -armSwing;
+        rArm.rotation.x = armSwing;
+        visual.position.y = -0.12 + Math.abs(Math.sin(clockTime * runningFreq)) * 0.12 * walkRunBlend;
+        visual.rotation.z = Math.sin(clockTime * runningFreq) * 0.08 * walkRunBlend;
       } else {
         const idleFreq = 2.5;
         visual.position.y = -0.12 + Math.sin(clockTime * idleFreq) * 0.03;
@@ -531,7 +606,7 @@ export const Player: React.FC = () => {
       restitution={0.1}
       onCollisionEnter={(event) => {
         const other = event.other.rigidBodyObject;
-        if (other && other.name === 'rotating-arm') {
+        if (other && (other.name === 'rotating-arm' || other.name === 'windmill-blade')) {
           const playerPos = rigidBodyRef.current!.translation();
           const otherPos = other.position;
           const dir = new THREE.Vector3(playerPos.x - otherPos.x, 0.2, playerPos.z - otherPos.z).normalize();

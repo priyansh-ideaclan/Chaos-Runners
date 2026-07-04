@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { 
   RotatingSweeper, 
@@ -19,10 +19,15 @@ import {
   SpeedPad,
   DebugLandmark,
   SlimeSplash,
-  TiltingDeck
+  TiltingDeck,
+  Windmill,
+  CandyHill,
+  CandyMountain,
+  DriftingCloud
 } from '../LevelObstacles';
 import { useGameStore } from '../../store/useGameStore';
 import { getThemeConfig } from '../../utils/themeManager';
+import { LEVEL_1_LANDMARKS } from '../../utils/landmarks';
 
 export const Level1: React.FC = () => {
   const triggerWinAction = useGameStore((state) => state.triggerWin);
@@ -31,6 +36,93 @@ export const Level1: React.FC = () => {
   const splashes = useGameStore((state) => state.splashes);
   const theme = useGameStore((state) => state.visualTheme);
   const config = getThemeConfig(theme);
+
+  // Deterministic procedural background scenery generation for Candy Hills theme
+  const backgroundProps = useMemo(() => {
+    const list: Array<{ type: 'tree'; pos: [number, number, number]; scale: number; variant: 'candy-pink' | 'candy-yellow' | 'candy-blue' | 'candy-purple' | 'candy-green' }> = [];
+    const seedRandom = (s: number) => {
+      const x = Math.sin(s) * 10000;
+      return x - Math.floor(x);
+    };
+
+    // Hills positions surrounding the course track (Z = -20 to Z = 150)
+    const hills = [
+      // Left side hills
+      { pos: [-24, -9, 0] as [number, number, number], r: 16, color: '#a8e6cf' },
+      { pos: [-28, -7, 25] as [number, number, number], r: 20, color: '#dcedc1' },
+      { pos: [-22, -10, 50] as [number, number, number], r: 18, color: '#ffd3b6' },
+      { pos: [-32, -6, 75] as [number, number, number], r: 22, color: '#a8e6cf' },
+      { pos: [-25, -8, 100] as [number, number, number], r: 19, color: '#dcedc1' },
+      { pos: [-28, -7, 125] as [number, number, number], r: 17, color: '#ffd3b6' },
+      { pos: [-24, -9, 145] as [number, number, number], r: 16, color: '#a8e6cf' },
+      
+      // Right side hills
+      { pos: [24, -9, 5] as [number, number, number], r: 18, color: '#dcedc1' },
+      { pos: [29, -7, 30] as [number, number, number], r: 21, color: '#ffd3b6' },
+      { pos: [23, -10, 55] as [number, number, number], r: 17, color: '#a8e6cf' },
+      { pos: [33, -6, 80] as [number, number, number], r: 23, color: '#dcedc1' },
+      { pos: [26, -8, 105] as [number, number, number], r: 20, color: '#ffd3b6' },
+      { pos: [27, -7, 130] as [number, number, number], r: 16, color: '#a8e6cf' },
+      { pos: [24, -9, 150] as [number, number, number], r: 18, color: '#dcedc1' },
+    ];
+
+    // Mountains further out on the horizon
+    const mountains = [
+      // Left horizon
+      { pos: [-65, -5, -20] as [number, number, number], r: 28, h: 42 },
+      { pos: [-75, -5, 20] as [number, number, number], r: 35, h: 55 },
+      { pos: [-60, -5, 60] as [number, number, number], r: 30, h: 45 },
+      { pos: [-70, -5, 100] as [number, number, number], r: 32, h: 48 },
+      { pos: [-62, -5, 140] as [number, number, number], r: 29, h: 44 },
+      
+      // Right horizon
+      { pos: [65, -5, -15] as [number, number, number], r: 30, h: 46 },
+      { pos: [72, -5, 25] as [number, number, number], r: 34, h: 50 },
+      { pos: [60, -5, 70] as [number, number, number], r: 28, h: 40 },
+      { pos: [78, -5, 110] as [number, number, number], r: 36, h: 58 },
+      { pos: [65, -5, 145] as [number, number, number], r: 27, h: 42 },
+      
+      // Far back horizon (behind finish)
+      { pos: [-35, -5, 168] as [number, number, number], r: 32, h: 48 },
+      { pos: [0, -8, 178] as [number, number, number], r: 40, h: 62 },
+      { pos: [35, -5, 162] as [number, number, number], r: 30, h: 45 },
+    ];
+
+    // Populate foliage trees deterministically on the hills
+    let seed = 9876;
+    hills.forEach((hill) => {
+      const count = 4;
+      for (let i = 0; i < count; i++) {
+        seed += 1;
+        const angle = seedRandom(seed) * Math.PI * 2;
+        const dist = seedRandom(seed + 1) * (hill.r - 2.5);
+        const px = hill.pos[0] + Math.cos(angle) * dist;
+        const pz = hill.pos[2] + Math.sin(angle) * dist;
+        
+        const diffSq = hill.r * hill.r - dist * dist;
+        const py = hill.pos[1] + (diffSq > 0 ? Math.sqrt(diffSq) : 0);
+
+        seed += 2;
+        const val = seedRandom(seed);
+        const scale = 0.5 + val * 0.75;
+        
+        let variant: 'candy-pink' | 'candy-yellow' | 'candy-blue' | 'candy-purple' | 'candy-green' = 'candy-pink';
+        if (val < 0.22) variant = 'candy-yellow';
+        else if (val < 0.44) variant = 'candy-blue';
+        else if (val < 0.66) variant = 'candy-purple';
+        else if (val < 0.88) variant = 'candy-green';
+
+        list.push({
+          type: 'tree',
+          pos: [px, py - 0.1, pz] as [number, number, number],
+          scale,
+          variant
+        });
+      }
+    });
+
+    return { hills, mountains, sceneryProps: list };
+  }, []);
 
   const handleFinish = (event: any) => {
     if (event.rigidBodyObject) {
@@ -48,28 +140,40 @@ export const Level1: React.FC = () => {
 
   // Checkpoint celebration states
   const isCp1Active = !!(lastCheckpoint && Math.abs(lastCheckpoint[2] - 20) < 1.5);
-  const isCp2Active = !!(lastCheckpoint && Math.abs(lastCheckpoint[2] - 45) < 1.5);
-  const isCp3Active = !!(lastCheckpoint && Math.abs(lastCheckpoint[2] - 80) < 1.5);
-  const isCp4Active = !!(lastCheckpoint && Math.abs(lastCheckpoint[2] - 110) < 1.5);
+  const isCp2Active = !!(lastCheckpoint && Math.abs(lastCheckpoint[2] - 42.6) < 1.5);
+  const isCp3Active = !!(lastCheckpoint && Math.abs(lastCheckpoint[2] - 73.0) < 1.5);
+  const isCp4Active = !!(lastCheckpoint && Math.abs(lastCheckpoint[2] - 100.0) < 1.5);
 
   return (
     <group name="level1">
-      {/* ── BACKGROUND SCENERY (LIVING WORLD) ────────────────────────── */}
-      {/* Distant Mountains */}
-      <mesh position={[-35, -2, 40]} rotation={[0, 0.4, 0]}>
-        <coneGeometry args={[12, 22, 4]} />
-        <meshStandardMaterial color="#3f4d63" roughness={0.9} />
-      </mesh>
-      <mesh position={[35, -4, 90]} rotation={[0, -0.2, 0]}>
-        <coneGeometry args={[15, 26, 4]} />
-        <meshStandardMaterial color="#4a5a73" roughness={0.9} />
-      </mesh>
+      {/* ── BACKGROUND SCENERY (CANDY HILLS LIVING WORLD) ────────────────────────── */}
+      {/* Rolling green landscape hills */}
+      {backgroundProps.hills.map((hill, idx) => (
+        <CandyHill key={`hill-${idx}`} position={hill.pos} radius={hill.r} color={hill.color} />
+      ))}
 
-      {/* Floating Sky Clouds */}
-      <DecorativeCloud position={[-15, 12, 15]} scale={1.2} />
-      <DecorativeCloud position={[18, 16, 45]} scale={1.4} />
-      <DecorativeCloud position={[-20, 22, 85]} scale={1.5} />
-      <DecorativeCloud position={[16, 18, 120]} scale={1.1} />
+      {/* Snow-capped pink mountains */}
+      {backgroundProps.mountains.map((mtn, idx) => (
+        <CandyMountain key={`mtn-${idx}`} position={mtn.pos} radius={mtn.r} height={mtn.h} />
+      ))}
+
+      {/* Fluffy cartoon scenery trees on hills */}
+      {backgroundProps.sceneryProps.map((prop, idx) => (
+        <DecorativeTree 
+          key={`scenery-tree-${idx}`} 
+          type="candy" 
+          variant={prop.variant} 
+          position={prop.pos} 
+          scale={prop.scale} 
+        />
+      ))}
+
+      {/* Cartoon Drifting Clouds */}
+      <DriftingCloud position={[-28, 22, -15]} scale={1.5} speed={0.8} />
+      <DriftingCloud position={[25, 26, 20]} scale={1.8} speed={0.6} />
+      <DriftingCloud position={[-30, 24, 60]} scale={1.6} speed={0.9} />
+      <DriftingCloud position={[28, 28, 100]} scale={1.4} speed={0.7} />
+      <DriftingCloud position={[-24, 25, 135]} scale={1.5} speed={0.8} />
 
       {/* ── OCEAN KILL ZONE ────────────────────────────────────────── */}
       <KillZonePlane position={[0, -9.0, 75]} size={[120, 280]} type="slime" />
@@ -100,8 +204,8 @@ export const Level1: React.FC = () => {
       </RigidBody>
 
       {/* Forest Trees and Flags at Spawn */}
-      <DecorativeTree position={[-4.5, -0.8, -3.0]} type="pine" scale={1.1} />
-      <DecorativeTree position={[4.5, -0.8, -1.0]} type="pine" scale={0.9} />
+      <DecorativeTree position={[-4.5, -0.8, -3.0]} type="candy" variant="candy-pink" scale={1.1} />
+      <DecorativeTree position={[4.5, -0.8, -1.0]} type="candy" variant="candy-yellow" scale={0.9} />
       <WavingFlag position={[-2.4, 0, -5.5]} color="#ff007f" />
       <WavingFlag position={[2.4, 0, -5.5]} color="#00e5ff" />
 
@@ -128,8 +232,8 @@ export const Level1: React.FC = () => {
           <meshStandardMaterial color="#2e8b57" roughness={0.7} />
         </mesh>
       </RigidBody>
-      <DecorativeTree position={[-3.2, -0.8, 13.0]} type="pine" scale={1.0} />
-      <DecorativeTree position={[3.2, -0.8, 17.0]} type="pine" scale={1.0} />
+      <DecorativeTree position={[-3.2, -0.8, 13.0]} type="candy" variant="candy-blue" scale={1.0} />
+      <DecorativeTree position={[3.2, -0.8, 17.0]} type="candy" variant="candy-purple" scale={1.0} />
 
 
       {/* ── SECTION 2: ZIG-ZAG PLATFORMS (MOUNTAIN ZONE) (Z = 20 to Z = 45) ── */}
@@ -140,6 +244,17 @@ export const Level1: React.FC = () => {
       {/* Platform 1: Tilting Deck Platforming */}
       <TiltingDeck position={[-1.0, 0.1, 24.5]} size={[3.0, 0.5, 3.0]} color="#00e5ff" />
 
+      {/* ── LEFT PATHWAY (EASY / LONG) ── */}
+      <RigidBody type="fixed" colliders={false}>
+        <CuboidCollider args={[1.5, 0.4, 11.0]} position={[-4.5, 0.1, 26.5]} />
+        <mesh receiveShadow position={[-4.5, 0.1, 26.5]}>
+          <boxGeometry args={[3.0, 0.8, 22.0]} />
+          <meshStandardMaterial color="#4287f5" roughness={0.9} />
+        </mesh>
+      </RigidBody>
+      <MudPlatform position={[-4.5, 0.52, 22.0]} size={[2.4, 0.1, 4.0]} color="#5a3d28" />
+
+      {/* ── MIDDLE PATHWAY (BALANCED / ZIG-ZAG) ── */}
       {/* Platform A: Fixed flat stone platform */}
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[1.25, 0.25, 1.25]} position={[1.0, 0.1, 28.2]} />
@@ -163,10 +278,24 @@ export const Level1: React.FC = () => {
 
       {/* Platform D: Moving Z flat platform */}
       <MovingPlatform position={[-0.8, 0.85, 39.0]} size={[2.5, 0.5, 2.5]} direction="z" range={0.6} speed={1.0} color="#ff2a85" />
+
+      {/* ── RIGHT PATHWAY (HARD / SHORT) ── */}
+      <MovingPlatform position={[4.5, 0.1, 22.5]} size={[2.5, 0.5, 4.0]} direction="y" range={0.8} speed={1.5} color="#ffd60a" />
+      <SpeedPad position={[4.5, 0.4, 28.0]} color="#39ff14" />
+      <RigidBody type="fixed" colliders={false}>
+        <CuboidCollider args={[0.5, 0.4, 4.0]} position={[4.5, 0.1, 34.0]} />
+        <mesh receiveShadow position={[4.5, 0.1, 34.0]}>
+          <boxGeometry args={[1.0, 0.8, 8.0]} />
+          <meshStandardMaterial color="#ff0055" roughness={0.6} />
+        </mesh>
+      </RigidBody>
+      <PendulumHammer position={[4.5, 1.2, 34.0]} length={2.5} speed={3.0} color="#ffd60a" />
       
       {/* Mountain Scenery details */}
-      <DecorativeTree position={[-6.0, -0.8, 25]} type="oak" scale={1.0} />
-      <DecorativeTree position={[6.0, -0.8, 35]} type="oak" scale={1.1} />
+      <DecorativeTree position={[-6.0, -0.8, 25]} type="candy" variant="candy-pink" scale={1.0} />
+      <DecorativeTree position={[6.0, -0.8, 35]} type="candy" variant="candy-yellow" scale={1.1} />
+      <DecorativeTree position={[-6.0, -0.8, 30]} type="candy" variant="candy-blue" scale={1.2} />
+      <DecorativeTree position={[6.0, -0.8, 22]} type="candy" variant="candy-green" scale={1.1} />
 
 
       {/* ── SECTION 3: POWER JUMP & VERTICAL STORY (SKY ZONE) (Z = 45 to Z = 80) ── */}
@@ -175,15 +304,21 @@ export const Level1: React.FC = () => {
       <ConfettiCannon position={[1.8, 1.0, 42.6]} active={isCp2Active} />
 
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[2.0, 0.4, 2.5]} position={[0, 0.6, 42.6]} />
+        <CuboidCollider args={[4.0, 0.4, 2.5]} position={[0, 0.6, 42.6]} />
         <mesh receiveShadow position={[0, 0.6, 42.6]}>
-          <boxGeometry args={[4.0, 0.8, 5.0]} />
+          <boxGeometry args={[8.0, 0.8, 5.0]} />
           <meshStandardMaterial color={config.groundColor} roughness={0.5} />
         </mesh>
       </RigidBody>
 
-      {/* Power Jump Pad! Launches players high into sky storey platform */}
-      <PowerJumpPad position={[0, 1.05, 44.5]} boostForce={22.0} color="#00e5ff" />
+      {/* Jump Pad! Launches players high into sky storey platform without visual glitches */}
+      <JumpPad position={[0, 1.05, 44.5]} boostForce={22.0} color="#00e5ff" />
+
+      {/* Autumn Forest Scenery along Section 3 */}
+      <DecorativeTree position={[-5.0, 6.7, 52]} type="candy" variant="candy-purple" scale={1.2} />
+      <DecorativeTree position={[5.0, 6.7, 56]} type="candy" variant="candy-pink" scale={1.0} />
+      <DecorativeTree position={[-5.0, 6.7, 60]} type="candy" variant="candy-green" scale={1.1} />
+      <DecorativeTree position={[5.0, 6.7, 66]} type="candy" variant="candy-blue" scale={1.3} />
 
       {/* Storey 1 (High Landing Deck) at Z = 57, Y = 7.5 */}
       <RigidBody type="fixed" colliders={false}>
@@ -198,10 +333,21 @@ export const Level1: React.FC = () => {
 
       {/* Storey 2 (Ice Platform left) at Z = 63.5, Y = 8.3 */}
       <IcePlatform position={[-3.0, 7.9, 63.5]} size={[3.0, 0.8, 4.0]} color="#b2f2ff" />
-      <DecorativeTree position={[-6.0, 8.3, 63.5]} type="pine" variant="snow" scale={0.8} />
+      <DecorativeTree position={[-6.0, 8.3, 63.5]} type="candy" variant="candy-purple" scale={0.8} />
 
-      {/* Storey 3 (Conveyor Platform right) at Z = 68.0, Y = 9.5 */}
-      <MovingPlatform position={[3.0, 9.1, 68.0]} size={[3.0, 0.8, 4.0]} direction="y" range={1.2} speed={1.6} color="#ffd60a" />
+      {/* Storey 3 (Static bridge and rotating Windmill) at Z = 68.0, Y = 9.5 */}
+      <RigidBody type="fixed" colliders={false}>
+        <CuboidCollider args={[1.5, 0.4, 3.0]} position={[3.0, 8.7, 68.0]} />
+        <mesh receiveShadow position={[3.0, 8.7, 68.0]}>
+          <boxGeometry args={[3.0, 0.8, 6.0]} />
+          <meshStandardMaterial color={config.groundColor} roughness={0.6} />
+        </mesh>
+      </RigidBody>
+      <mesh position={[1.45, 9.3, 68.0]} castShadow>
+        <boxGeometry args={[0.1, 0.8, 6.0]} />
+        <meshStandardMaterial color="#ffd60a" roughness={0.3} />
+      </mesh>
+      <Windmill position={[4.6, 10.5, 68.0]} speed={1.8} color="#ffd60a" />
 
       {/* Storey 4 (Merge deck with Checkpoint) at Z = 73.0, Y = 10.7 */}
       <RigidBody type="fixed" colliders={false}>
@@ -218,20 +364,39 @@ export const Level1: React.FC = () => {
       <ConfettiCannon position={[-2.0, 10.7, 73.0]} active={isCp3Active} />
       <ConfettiCannon position={[2.0, 10.7, 73.0]} active={isCp3Active} />
 
-      {/* Slanted Ice slide ramp going down */}
-      <RigidBody type="fixed" colliders={false} friction={0.01}>
-        <CuboidCollider args={[3.0, 0.4, 5.0]} position={[0, 7.4, 81.0]} rotation={[0.463, 0, 0]} />
-        <mesh receiveShadow position={[0, 7.4, 81.0]} rotation={[0.463, 0, 0]}>
-          <boxGeometry args={[6.0, 0.8, 10.0]} />
-          <meshStandardMaterial color="#7ce8ff" roughness={0.02} metalness={0.6} transparent opacity={0.9} />
+      {/* Parallel Slides (Left, Middle, Right) */}
+      {/* Left: Water slide (Blue) */}
+      <RigidBody type="fixed" colliders={false} userData={{ surface: 'slide' }}>
+        <CuboidCollider args={[1.0, 0.4, 5.0]} position={[-4.0, 7.4, 81.0]} rotation={[0.463, 0, 0]} />
+        <mesh receiveShadow position={[-4.0, 7.4, 81.0]} rotation={[0.463, 0, 0]} userData={{ surface: 'slide' }}>
+          <boxGeometry args={[2.0, 0.8, 10.0]} />
+          <meshStandardMaterial color="#0066ff" roughness={0.1} transparent opacity={0.8} />
+        </mesh>
+      </RigidBody>
+
+      {/* Middle: Rainbow slide (Yellow) */}
+      <RigidBody type="fixed" colliders={false} userData={{ surface: 'slide' }}>
+        <CuboidCollider args={[1.0, 0.4, 5.0]} position={[0.0, 7.4, 81.0]} rotation={[0.463, 0, 0]} />
+        <mesh receiveShadow position={[0.0, 7.4, 81.0]} rotation={[0.463, 0, 0]} userData={{ surface: 'slide' }}>
+          <boxGeometry args={[2.0, 0.8, 10.0]} />
+          <meshStandardMaterial color="#ffd60a" roughness={0.1} />
+        </mesh>
+      </RigidBody>
+
+      {/* Right: Ice slide (White) */}
+      <RigidBody type="fixed" colliders={false} userData={{ surface: 'slide' }}>
+        <CuboidCollider args={[1.0, 0.4, 5.0]} position={[4.0, 7.4, 81.0]} rotation={[0.463, 0, 0]} />
+        <mesh receiveShadow position={[4.0, 7.4, 81.0]} rotation={[0.463, 0, 0]} userData={{ surface: 'slide' }}>
+          <boxGeometry args={[2.0, 0.8, 10.0]} />
+          <meshStandardMaterial color="#ffffff" roughness={0.01} metalness={0.6} />
         </mesh>
       </RigidBody>
 
       {/* Slide landing deck at Z = 88.0, Y = 4.5 */}
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[3.5, 0.4, 2.0]} position={[0, 4.1, 88.0]} />
+        <CuboidCollider args={[5.5, 0.4, 2.0]} position={[0, 4.1, 88.0]} />
         <mesh receiveShadow position={[0, 4.1, 88.0]}>
-          <boxGeometry args={[7.0, 0.8, 4.0]} />
+          <boxGeometry args={[11.0, 0.8, 4.0]} />
           <meshStandardMaterial color="#8b8589" roughness={0.7} />
         </mesh>
       </RigidBody>
@@ -240,15 +405,15 @@ export const Level1: React.FC = () => {
       <RotatingSweeper position={[0, 4.5, 88.0]} radius={2.0} height={0.5} speed={1.8} color="#ffaa00" />
       
       {/* Side slowing mud traps */}
-      <MudPlatform position={[-2.6, 4.1, 88.0]} size={[1.8, 0.85, 4.0]} color="#4d2f1d" />
+      <MudPlatform position={[-4.6, 4.1, 88.0]} size={[1.8, 0.85, 4.0]} color="#4d2f1d" />
       <MudPlatform position={[2.6, 4.1, 88.0]} size={[1.8, 0.85, 4.0]} color="#4d2f1d" />
 
       {/* Swinging pendulum hammers above the slide landing */}
       <PendulumHammer position={[0, 5.2, 94.0]} length={3.0} speed={2.5} color="#ff007f" />
       
       {/* Snow environment trees */}
-      <DecorativeTree position={[-5.0, 4.5, 86.0]} type="pine" variant="snow" scale={0.9} />
-      <DecorativeTree position={[5.0, 4.5, 90.0]} type="pine" variant="snow" scale={1.0} />
+      <DecorativeTree position={[-5.0, 4.5, 86.0]} type="candy" variant="candy-pink" scale={0.9} />
+      <DecorativeTree position={[5.0, 4.5, 90.0]} type="candy" variant="candy-blue" scale={1.0} />
 
 
       {/* ── SECTION 5: FINAL SPRINT & BOUNCERS (DESERT ZONE) (Z = 100 to Z = 131) ── */}
@@ -297,8 +462,22 @@ export const Level1: React.FC = () => {
       {/* Desert Ruins Scenery details */}
       <DecorativeRuins position={[-5.0, 4.5, 106.0]} type="broken-pillar" scale={0.7} />
       <DecorativeRuins position={[5.0, 4.5, 103.0]} type="pillar" scale={0.8} />
-      <DecorativeTree position={[-4.5, 4.5, 112.0]} type="palm" scale={1.1} />
-      <DecorativeTree position={[4.5, 4.5, 112.0]} type="palm" scale={1.0} />
+      <DecorativeTree position={[-4.5, 4.5, 112.0]} type="candy" variant="candy-yellow" scale={1.1} />
+      <DecorativeTree position={[4.5, 4.5, 112.0]} type="candy" variant="candy-pink" scale={1.0} />
+
+      {/* Floating Celebration Balloons */}
+      <mesh position={[-4.0, 8.0, 122.0]} castShadow>
+        <sphereGeometry args={[0.3, 16, 16]} />
+        <meshStandardMaterial color="#ff007f" roughness={0.2} />
+      </mesh>
+      <mesh position={[4.0, 9.5, 124.0]} castShadow>
+        <sphereGeometry args={[0.3, 16, 16]} />
+        <meshStandardMaterial color="#ffd60a" roughness={0.2} />
+      </mesh>
+      <mesh position={[-3.0, 11.0, 128.0]} castShadow>
+        <sphereGeometry args={[0.3, 16, 16]} />
+        <meshStandardMaterial color="#00e5ff" roughness={0.2} />
+      </mesh>
 
 
       {/* ── FINISH LINE PLATFORM ────────────────────────────────────── */}
@@ -339,16 +518,18 @@ export const Level1: React.FC = () => {
       </RigidBody>
 
       {/* --- Numbered Debug Checkpoint Landmarks (Developer Mode) --- */}
-      <DebugLandmark position={[2.0, 0, 5.0]} number={1} label="CP_01" />
-      <DebugLandmark position={[-2.0, 0, 12.0]} number={2} label="CP_02" />
-      <DebugLandmark position={[2.0, 0, 20.0]} number={3} label="CP_03" />
-      <DebugLandmark position={[3.0, 0.1, 32.0]} number={4} label="CP_04" />
-      <DebugLandmark position={[2.0, 0.6, 39.5]} number={5} label="CP_05" />
-      <DebugLandmark position={[-2.0, 0.6, 42.0]} number={6} label="CP_06" />
-      <DebugLandmark position={[2.0, 7.1, 57.0]} number={7} label="CP_07" />
-      <DebugLandmark position={[-5.0, 7.9, 63.5]} number={8} label="CP_08" />
-      <DebugLandmark position={[2.0, 4.5, 100.0]} number={9} label="CP_09" />
-      <DebugLandmark position={[2.0, -1.8, 128.0]} number={10} label="CP_10" />
+      {LEVEL_1_LANDMARKS.map((lm, idx) => {
+        const numStr = String(idx + 1).padStart(3, '0');
+        const idLabel = `LM_${numStr}`;
+        return (
+          <DebugLandmark 
+            key={idLabel} 
+            position={lm.pos} 
+            number={idx + 1} 
+            label={idLabel} 
+          />
+        );
+      })}
 
       {/* Dynamic Slime Splashes */}
       {splashes.map((s) => (

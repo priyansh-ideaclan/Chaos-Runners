@@ -80,6 +80,7 @@ export const CameraController: React.FC = () => {
   const smoothLookAt    = useRef(new THREE.Vector3(0, 1, 0));
   const nitroEffectVal  = useRef(0);
   const isNitroActive   = useGameStore((state) => state.isNitroActive);
+  const isPlayerSliding = useGameStore((state) => state.isPlayerSliding);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Key bindings to skip the cinematic flyover
@@ -375,7 +376,12 @@ export const CameraController: React.FC = () => {
       (camera as THREE.PerspectiveCamera).updateProjectionMatrix();
     }
 
-    const targetCamPos  = computeFollowCamPos(playerPos, yaw.current, pitch.current, nitroEffectVal.current * 1.5);
+    const targetCamPos  = computeFollowCamPos(
+      playerPos,
+      yaw.current,
+      pitch.current,
+      (nitroEffectVal.current * 1.5) + (isPlayerSliding ? 2.5 : 0.0)
+    );
     const targetLookAt  = playerPos.clone().add(new THREE.Vector3(0, 0.5, 0));
 
     // Floor clip prevention
@@ -383,8 +389,10 @@ export const CameraController: React.FC = () => {
       targetCamPos.y = playerPos.y + 0.4;
     }
 
-    smoothCamPos.current.lerp(targetCamPos, FOLLOW_POS_LERP);
-    smoothLookAt.current.lerp(targetLookAt, FOLLOW_LOOK_LERP);
+    const tPos = Math.min(1.0, 7.0 * delta);
+    const tLook = Math.min(1.0, 9.0 * delta);
+    smoothCamPos.current.lerp(targetCamPos, tPos);
+    smoothLookAt.current.lerp(targetLookAt, tLook);
 
     camera.position.copy(smoothCamPos.current);
     camera.lookAt(smoothLookAt.current);

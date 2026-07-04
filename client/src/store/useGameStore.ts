@@ -73,7 +73,16 @@ interface GameState {
   sfxVolume: number;
   musicMuted: boolean;
   sfxMuted: boolean;
+  weatherVolume: number;
+  uiVolume: number;
+  weatherMuted: boolean;
+  uiMuted: boolean;
   showDebugCheckpoints: boolean;
+  devLandmarkIndex: number;
+  devLandmarkDistance: number;
+  devShowDetails: boolean;
+  setDevLandmarkInfo: (index: number, distance: number) => void;
+  toggleDevShowDetails: () => void;
   splashes: Array<{ id: string; position: [number, number, number]; color: string }>;
   isNitroActive: boolean;
   nitroCooldown: number;
@@ -81,6 +90,9 @@ interface GameState {
   setNitroCooldown: (cooldown: number) => void;
   triggerNitro: () => void;
   tickNitro: (dt: number) => void;
+
+  isPlayerSliding: boolean;
+  setPlayerSliding: (sliding: boolean) => void;
 
   // Actions
   setPhase: (phase: GamePhase) => void;
@@ -104,8 +116,8 @@ interface GameState {
   triggerLoss: () => void;
 
   // Audio Actions
-  setVolume: (type: 'master' | 'music' | 'sfx', value: number) => void;
-  toggleMute: (type: 'music' | 'sfx') => void;
+  setVolume: (type: 'master' | 'music' | 'sfx' | 'weather' | 'ui', value: number) => void;
+  toggleMute: (type: 'music' | 'sfx' | 'weather' | 'ui') => void;
 
   // Legacy campaign actions
   startGame: () => void;
@@ -249,10 +261,20 @@ export const useGameStore = create<GameState>((set, get) => ({
   sfxVolume: getStoredNumber('chaorunners_vol_sfx', 0.7),
   musicMuted: getStoredBoolean('chaorunners_mute_music', false),
   sfxMuted: getStoredBoolean('chaorunners_mute_sfx', false),
+  weatherVolume: getStoredNumber('chaorunners_vol_weather', 0.4),
+  uiVolume: getStoredNumber('chaorunners_vol_ui', 0.7),
+  weatherMuted: getStoredBoolean('chaorunners_mute_weather', false),
+  uiMuted: getStoredBoolean('chaorunners_mute_ui', false),
   showDebugCheckpoints: false,
+  devLandmarkIndex: -1,
+  devLandmarkDistance: 0,
+  devShowDetails: true,
+  setDevLandmarkInfo: (index, distance) => set({ devLandmarkIndex: index, devLandmarkDistance: distance }),
+  toggleDevShowDetails: () => set((state) => ({ devShowDetails: !state.devShowDetails })),
   splashes: [],
   isNitroActive: false,
   nitroCooldown: 0,
+  isPlayerSliding: false,
 
   setPhase: (phase) => set({ phase }),
   setCinematicActive: (active) => set({ cinematicActive: active }),
@@ -291,6 +313,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       };
     });
   },
+  setPlayerSliding: (sliding) => set({ isPlayerSliding: sliding }),
 
   updateCustomization: (customization) => set((state) => ({
     customization: { ...state.customization, ...customization }
@@ -529,6 +552,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     } else if (type === 'music') {
       localStorage.setItem('chaorunners_vol_music', val.toString());
       return { musicVolume: val };
+    } else if (type === 'weather') {
+      localStorage.setItem('chaorunners_vol_weather', val.toString());
+      return { weatherVolume: val };
+    } else if (type === 'ui') {
+      localStorage.setItem('chaorunners_vol_ui', val.toString());
+      return { uiVolume: val };
     } else {
       localStorage.setItem('chaorunners_vol_sfx', val.toString());
       return { sfxVolume: val };
@@ -540,6 +569,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       const nextVal = !state.musicMuted;
       localStorage.setItem('chaorunners_mute_music', nextVal.toString());
       return { musicMuted: nextVal };
+    } else if (type === 'weather') {
+      const nextVal = !state.weatherMuted;
+      localStorage.setItem('chaorunners_mute_weather', nextVal.toString());
+      return { weatherMuted: nextVal };
+    } else if (type === 'ui') {
+      const nextVal = !state.uiMuted;
+      localStorage.setItem('chaorunners_mute_ui', nextVal.toString());
+      return { uiMuted: nextVal };
     } else {
       const nextVal = !state.sfxMuted;
       localStorage.setItem('chaorunners_mute_sfx', nextVal.toString());

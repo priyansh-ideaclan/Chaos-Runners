@@ -6,6 +6,13 @@ class AudioManager {
   private masterGain: GainNode | null = null;
   private musicGain: GainNode | null = null;
   private sfxGain: GainNode | null = null;
+  private weatherGain: GainNode | null = null;
+  private uiGain: GainNode | null = null;
+  private defeatAudioBuffer: AudioBuffer | null = null;
+  private windSource: AudioBufferSourceNode | null = null;
+  private rainSource: AudioBufferSourceNode | null = null;
+  private windGainNode: GainNode | null = null;
+  private rainGainNode: GainNode | null = null;
 
   // Music sequencer states
   private sequencerIntervalId: number | null = null;
@@ -51,15 +58,105 @@ class AudioManager {
     this.masterGain = this.ctx.createGain();
     this.musicGain = this.ctx.createGain();
     this.sfxGain = this.ctx.createGain();
+    this.weatherGain = this.ctx.createGain();
+    this.uiGain = this.ctx.createGain();
 
     this.masterGain.connect(this.ctx.destination);
     this.musicGain.connect(this.masterGain);
     this.sfxGain.connect(this.masterGain);
+    this.weatherGain.connect(this.masterGain);
+    this.uiGain.connect(this.masterGain);
+
+    this.initAmbience();
+    this.loadDefeatSound();
 
     // Initial volumes load from game store state
     const state = useGameStore.getState();
     this.updateVolumes(state);
     this.updateLevelBGM(state.currentLevelId);
+  }
+
+  private createNoiseBuffer(duration: number = 2.0): AudioBuffer {
+    if (!this.ctx) throw new Error("AudioContext not initialized");
+    const bufferSize = this.ctx.sampleRate * duration;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    return buffer;
+  }
+
+  private initAmbience() {
+    if (!this.ctx) return;
+    try {
+      const noiseBuffer = this.createNoiseBuffer(2.0);
+
+      // Wind Loop Setup
+      this.windSource = this.ctx.createBufferSource();
+      this.windSource.buffer = noiseBuffer;
+      this.windSource.loop = true;
+
+      const windFilter = this.ctx.createBiquadFilter();
+      windFilter.type = 'lowpass';
+      windFilter.frequency.value = 350;
+      windFilter.Q.value = 1.8;
+
+      this.windGainNode = this.ctx.createGain();
+      this.windGainNode.gain.value = 0.0; // start silent
+
+      this.windSource.connect(windFilter);
+      windFilter.connect(this.windGainNode);
+      this.windGainNode.connect(this.weatherGain!);
+      this.windSource.start(0);
+
+      // Periodically modulate wind frequency to simulate wind gusts!
+      let oscTime = 0;
+      setInterval(() => {
+        if (!this.ctx) return;
+        oscTime += 0.25;
+        const currentFreq = 350 + Math.sin(oscTime) * 120 + Math.cos(oscTime * 0.45) * 80;
+        windFilter.frequency.setValueAtTime(currentFreq, this.ctx.currentTime);
+      }, 250);
+
+      // Rain Loop Setup
+      this.rainSource = this.ctx.createBufferSource();
+      this.rainSource.buffer = noiseBuffer;
+      this.rainSource.loop = true;
+
+      const rainFilter = this.ctx.createBiquadFilter();
+      rainFilter.type = 'highpass';
+      rainFilter.frequency.value = 1800;
+
+      this.rainGainNode = this.ctx.createGain();
+      this.rainGainNode.gain.value = 0.0; // start silent
+
+      this.rainSource.connect(rainFilter);
+      rainFilter.connect(this.rainGainNode);
+      this.rainGainNode.connect(this.weatherGain!);
+      this.rainSource.start(0);
+    } catch (e) {
+      console.warn("AudioManager ambient synthesizer initialization failed:", e);
+    }
+  }
+
+  public updateWeatherAmbience(windVol: number, rainVol: number) {
+    this.init();
+    if (!this.ctx || !this.windGainNode || !this.rainGainNode) return;
+    const time = this.ctx.currentTime;
+    this.windGainNode.gain.linearRampToValueAtTime(windVol * 0.18, time + 0.35);
+    this.rainGainNode.gain.linearRampToValueAtTime(rainVol * 0.22, time + 0.35);
+  }
+
+  private async loadDefeatSound() {
+    if (!this.ctx) return;
+    try {
+      const response = await fetch('/assets/soundEffects/fahhh_KcgAXfs.mp3');
+      const arrayBuffer = await response.arrayBuffer();
+      this.defeatAudioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+    } catch (e) {
+      console.warn("AudioManager failed to load custom defeat sound file:", e);
+    }
   }
 
   private updateVolumes(state: any) {
@@ -68,10 +165,14 @@ class AudioManager {
     const master = state.masterVolume;
     const music = (state.musicMuted ? 0 : state.musicVolume) * this.musicVolumeMultiplier;
     const sfx = state.sfxMuted ? 0 : state.sfxVolume;
+    const weather = state.weatherMuted ? 0 : state.weatherVolume;
+    const ui = state.uiMuted ? 0 : state.uiVolume;
 
     if (this.masterGain) this.masterGain.gain.setValueAtTime(master, this.ctx.currentTime);
     if (this.musicGain) this.musicGain.gain.setValueAtTime(music, this.ctx.currentTime);
-    if (this.sfxGain) this.sfxGain.gain.setValueAtTime(sfx * 0.8, this.ctx.currentTime); // slightly damp sfx to make it soft
+    if (this.sfxGain) this.sfxGain.gain.setValueAtTime(sfx * 0.8, this.ctx.currentTime);
+    if (this.weatherGain) this.weatherGain.gain.setValueAtTime(weather * 0.25, this.ctx.currentTime); // capped at 25% to allow BGM dominance
+    if (this.uiGain) this.uiGain.gain.setValueAtTime(ui, this.ctx.currentTime);
   }
 
   public setMusicVolumeMultiplier(mult: number) {
@@ -178,7 +279,7 @@ class AudioManager {
 
   public playClick() {
     this.resumeContext();
-    if (!this.ctx || !this.sfxGain) return;
+    if (!this.ctx || !this.uiGain) return;
 
     const osc = this.ctx.createOscillator();
     const env = this.ctx.createGain();
@@ -191,7 +292,7 @@ class AudioManager {
     env.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
 
     osc.connect(env);
-    env.connect(this.sfxGain);
+    env.connect(this.uiGain);
 
     osc.start();
     osc.stop(this.ctx.currentTime + 0.06);
@@ -388,7 +489,19 @@ class AudioManager {
     musicManager.duckMusic(0.2, 4000);
     if (!this.ctx || !this.sfxGain) return;
 
-    // Downward sad chime
+    if (this.defeatAudioBuffer) {
+      try {
+        const source = this.ctx.createBufferSource();
+        source.buffer = this.defeatAudioBuffer;
+        source.connect(this.sfxGain);
+        source.start(0);
+        return;
+      } catch (e) {
+        console.warn("Failed to play custom defeat buffer, falling back to synth:", e);
+      }
+    }
+
+    // Downward sad chime fallback
     const time = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const env = this.ctx.createGain();

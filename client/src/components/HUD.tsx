@@ -5,6 +5,7 @@ import { RaceLeaderboard } from './RaceLeaderboard';
 import { audioManager } from '../utils/audioManager';
 import { musicManager } from '../utils/musicManager';
 import { useMusicStore } from '../store/useMusicStore';
+import { LEVEL_1_LANDMARKS } from '../utils/landmarks';
 
 // ─── Level display names ──────────────────────────────────────────────────────
 const LEVEL_NAMES: Record<string, string> = {
@@ -71,6 +72,9 @@ export const HUD: React.FC = () => {
     cinematicActive,
     setCinematicActive,
     showDebugCheckpoints,
+    devLandmarkIndex,
+    devLandmarkDistance,
+    devShowDetails,
     isNitroActive,
     nitroCooldown,
   } = useGameStore();
@@ -104,8 +108,10 @@ export const HUD: React.FC = () => {
         musicManager.skipToNext();
       } else if (e.key === 'm' || e.key === 'M') {
         useMusicStore.getState().setEnableMusic(!useMusicStore.getState().enableMusic);
-      } else if (e.key === 'o' || e.key === 'O') {
+      } else if (e.key === 'o' || e.key === 'O' || e.key === 'F8') {
         useGameStore.getState().toggleDebugCheckpoints();
+      } else if (e.key === 'F9') {
+        useGameStore.getState().toggleDevShowDetails();
       }
     };
 
@@ -690,6 +696,53 @@ export const HUD: React.FC = () => {
           <button className="ui-interactive btn-secondary" style={{ pointerEvents: 'all', padding: '10px 16px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800 }} onClick={resetTournament}>
             <Home size={14} /> Leave Match
           </button>
+        </div>
+      )}
+
+      {/* Developer Mode Landmarks Overlay */}
+      {showDebugCheckpoints && devShowDetails && devLandmarkIndex !== -1 && (
+        <div className="glass-panel" style={{
+          position: 'absolute',
+          top: '90px',
+          left: '20px',
+          padding: '14px 18px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          border: '1.5px solid var(--secondary)',
+          background: 'rgba(189, 0, 255, 0.12)', // neon purple glow
+          boxShadow: '0 0 12px rgba(189, 0, 255, 0.25)',
+          borderRadius: '10px',
+          width: '260px',
+          color: '#ffffff',
+          fontFamily: 'monospace',
+          fontSize: '0.82rem',
+          pointerEvents: 'none',
+          zIndex: 1000
+        }}>
+          <div style={{ fontWeight: 800, color: 'var(--secondary)', fontSize: '0.85rem', letterSpacing: '0.5px', borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: '4px', marginBottom: '2px' }}>
+            🛠️ DEV LANDMARK DETAILS (F9)
+          </div>
+          <div>
+            <span style={{ color: 'rgba(255,255,255,0.6)' }}>Current Landmark:</span>{' '}
+            <strong style={{ color: '#fff', fontSize: '0.9rem' }}>
+              {devLandmarkIndex + 1} <span style={{ color: 'var(--secondary)', fontSize: '0.75rem' }}>(LM_{String(devLandmarkIndex + 1).padStart(3, '0')})</span>
+            </strong>
+          </div>
+          <div>
+            <span style={{ color: 'rgba(255,255,255,0.6)' }}>Next Landmark:</span>{' '}
+            <strong>{devLandmarkIndex < 41 ? devLandmarkIndex + 2 : 'N/A'}</strong>
+          </div>
+          <div>
+            <span style={{ color: 'rgba(255,255,255,0.6)' }}>Distance:</span>{' '}
+            <strong style={{ color: '#ffd60a' }}>{devLandmarkDistance.toFixed(1)} m</strong>
+          </div>
+          <div>
+            <span style={{ color: 'rgba(255,255,255,0.6)' }}>Section:</span>{' '}
+            <strong style={{ color: '#39ff14' }}>
+              {LEVEL_1_LANDMARKS[devLandmarkIndex]?.section || 'Unknown'}
+            </strong>
+          </div>
         </div>
       )}
 
