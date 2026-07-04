@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { audioManager } from '../utils/audioManager';
-import { Sparkles, Trophy, Play, Volume2, VolumeX, Unlock } from 'lucide-react';
+import { Sparkles, Play, Volume2, VolumeX, Unlock, Lock } from 'lucide-react';
 import { useMusicStore } from '../store/useMusicStore';
 
 const LEVEL_NAMES = [
@@ -30,8 +30,7 @@ const ACCESSORIES = [
 export const MainMenu: React.FC = () => {
   const { 
     phase, 
-    startGame, 
-    startTournament,
+    startGame,
     customization, 
     updateCustomization, 
     wins, 
@@ -52,6 +51,8 @@ export const MainMenu: React.FC = () => {
     toggleMute,
     playerName,
     setPlayerName,
+    unlockAllLevels,
+    setUnlockAllLevels,
   } = useGameStore();
 
   // Start background music loop on main lobby entry (only after player has entered their name)
@@ -64,7 +65,7 @@ export const MainMenu: React.FC = () => {
   if (phase !== 'MENU') return null;
 
   const handleLevelClick = (idx: number) => {
-    if (idx <= maxLevelUnlocked) {
+    if (idx <= maxLevelUnlocked || unlockAllLevels) {
       selectLevel(idx);
       audioManager.playClick();
     }
@@ -132,12 +133,27 @@ export const MainMenu: React.FC = () => {
 
         {/* Level Progression Section */}
         <div>
-          <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', fontWeight: 800, display: 'block', marginBottom: '8px' }}>
-            Select Level
-          </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', fontWeight: 800 }}>
+              Select Level
+            </span>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, color: unlockAllLevels ? '#ffd60a' : 'rgba(255,255,255,0.5)', transition: 'color 0.2s' }}>
+              <input 
+                type="checkbox" 
+                checked={unlockAllLevels} 
+                onChange={(e) => {
+                  setUnlockAllLevels(e.target.checked);
+                  audioManager.playClick();
+                }} 
+                style={{ cursor: 'pointer', margin: 0, accentColor: '#ffd60a' }}
+              />
+              🔓 Unlock All Levels
+            </label>
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {LEVEL_NAMES.map((name, idx) => {
               const isSelected = idx === currentLevelIndex;
+              const isUnlocked = idx <= maxLevelUnlocked || unlockAllLevels;
 
               return (
                 <button
@@ -151,15 +167,20 @@ export const MainMenu: React.FC = () => {
                     padding: '8px 12px',
                     fontSize: '0.85rem',
                     textAlign: 'left',
-                    cursor: 'pointer',
+                    cursor: isUnlocked ? 'pointer' : 'not-allowed',
                     borderColor: isSelected ? 'var(--secondary)' : 'var(--glass-border)',
                     background: isSelected ? 'rgba(0, 229, 255, 0.08)' : 'var(--glass-bg)',
+                    opacity: isUnlocked ? 1.0 : 0.42,
                   }}
                 >
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: isSelected ? 800 : 500 }}>
                     {isSelected ? '▶ ' : ''}{name}
                   </span>
-                  <Unlock size={12} color="var(--secondary)" />
+                  {isUnlocked ? (
+                    <Unlock size={12} color="var(--secondary)" />
+                  ) : (
+                    <Lock size={12} color="rgba(255,255,255,0.28)" />
+                  )}
                 </button>
               );
             })}
@@ -197,10 +218,6 @@ export const MainMenu: React.FC = () => {
             <button className="btn-primary" onClick={startGame} style={{ width: '100%', justifyContent: 'center', padding: '10px', background: 'var(--primary)' }}>
               <Play size={18} fill="white" />
               Start Game
-            </button>
-            <button className="btn-secondary" onClick={startTournament} style={{ width: '100%', justifyContent: 'center', padding: '10px', borderColor: 'var(--secondary)' }}>
-              <Trophy size={18} color="var(--secondary)" />
-              Launch Tournament
             </button>
           </div>
         </div>

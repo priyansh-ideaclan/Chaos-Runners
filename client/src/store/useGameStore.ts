@@ -60,6 +60,7 @@ interface GameState {
   // Legacy campaign variables
   currentLevelIndex: number;
   maxLevelUnlocked: number;
+  unlockAllLevels: boolean;
   qualifiedBots: string[];
   eliminatedBots: string[];
 
@@ -126,6 +127,7 @@ interface GameState {
   startGame: () => void;
   selectLevel: (index: number) => void;
   unlockNextLevel: () => void;
+  setUnlockAllLevels: (val: boolean) => void;
   toggleDebugCheckpoints: () => void;
   botsEnabled: boolean;
   toggleBots: () => void;
@@ -239,7 +241,8 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // Legacy campaign defaults
   currentLevelIndex: 0,
-  maxLevelUnlocked: 4, // DEV: all levels unlocked for testing
+  maxLevelUnlocked: getStoredNumber('chaorunners_max_unlocked', 0),
+  unlockAllLevels: getStoredBoolean('chaorunners_unlock_all', false),
   qualifiedBots: [],
   eliminatedBots: [],
 
@@ -762,8 +765,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   unlockNextLevel: () => set((state) => {
-    const nextMax = Math.min(4, state.maxLevelUnlocked + 1);
+    const nextMax = Math.min(3, state.maxLevelUnlocked + 1);
     localStorage.setItem('chaorunners_max_unlocked', nextMax.toString());
     return { maxLevelUnlocked: nextMax };
   }),
+
+  setUnlockAllLevels: (val) => {
+    localStorage.setItem('chaorunners_unlock_all', val.toString());
+    set({ unlockAllLevels: val });
+  },
 }));
