@@ -9,5 +9,8 @@
     "client:dev": "npm run dev -w client",
     "client:build": "npm run build -w client",
     "client:test": "npm run test -w client"
+  },
+  "overrides": {
+    "three-mesh-bvh": "^0.8.0"
   }
 }
