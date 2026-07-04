@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, CuboidCollider, CylinderCollider, RapierRigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
-import { Text, Billboard } from '@react-three/drei';
+import { Text, Billboard, Html } from '@react-three/drei';
 import { useGameStore } from '../store/useGameStore';
 import { audioManager } from '../utils/audioManager';
 
@@ -96,9 +96,10 @@ interface JumpPadProps {
   position: [number, number, number];
   boostForce?: number;
   color?: string;
+  scale?: number;
 }
 
-export const JumpPad: React.FC<JumpPadProps> = ({ position, boostForce = 12.5, color = '#00e5ff' }) => {
+export const JumpPad: React.FC<JumpPadProps> = ({ position, boostForce = 12.5, color = '#00e5ff', scale = 1.0 }) => {
   const [pulse, setPulse] = useState(false);
   const particles = useRef<Array<{ pos: THREE.Vector3; vel: THREE.Vector3; scale: number }>>([]);
   const pointsRef = useRef<THREE.Points>(null);
@@ -108,7 +109,7 @@ export const JumpPad: React.FC<JumpPadProps> = ({ position, boostForce = 12.5, c
     const otherObject = event.rigidBodyObject;
     if (otherBody && otherObject && (otherObject.name === 'player' || otherObject.name === 'bot')) {
       const vel = otherBody.linvel();
-      otherBody.setLinvel({ x: vel.x * 0.5, y: boostForce, z: Math.max(vel.z, 6.5) }, true);
+      otherBody.setLinvel({ x: vel.x * 0.5, y: boostForce, z: Math.max(0, vel.z) * 0.2 + 1.2 }, true);
       audioManager.playJump();
       
       setPulse(true);
@@ -144,21 +145,33 @@ export const JumpPad: React.FC<JumpPadProps> = ({ position, boostForce = 12.5, c
     }
   });
 
+  // Manually compute dimensions to avoid scaling the RigidBody parent group
+  const baseRadius = 0.85 * scale;
+  const padHeight = 0.08 * scale;
+  const ringRadiusInner = 0.8 * scale;
+  const ringRadiusOuter = 1.05 * scale;
+  
+  // CylinderCollider args: [halfHeight, radius]
+  // We make the trigger a tall vertical column and add a 10% radius buffer to catch all edge touches and jump-ins
+  const colliderHalfHeight = 1.2 * scale;
+  const colliderRadius = baseRadius * 1.1;
+  const colliderY = 1.2 * scale;
+
   return (
     <group position={position}>
       <mesh receiveShadow position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.5, 0.65, 24]} />
+        <ringGeometry args={[ringRadiusInner, ringRadiusOuter, 24]} />
         <meshStandardMaterial color={pulse ? '#ffffff' : '#ffd60a'} roughness={0.2} />
       </mesh>
       <RigidBody type="fixed" colliders={false}>
-        <CylinderCollider args={[0.22, 0.55]} sensor onIntersectionEnter={handleEnter} position={[0, 0.22, 0]} />
+        <CylinderCollider args={[colliderHalfHeight, colliderRadius]} sensor onIntersectionEnter={handleEnter} position={[0, colliderY, 0]} />
         <mesh 
           castShadow 
           receiveShadow 
-          position={[0, 0.04, 0]}
+          position={[0, padHeight / 2, 0]}
           scale={pulse ? [1.15, 1.3, 1.15] : [1.0, 1.0, 1.0]}
         >
-          <cylinderGeometry args={[0.55, 0.55, 0.08, 12]} />
+          <cylinderGeometry args={[baseRadius, baseRadius, padHeight, 12]} />
           <meshStandardMaterial 
             color={pulse ? '#ffffff' : color} 
             roughness={0.1} 
@@ -1407,27 +1420,37 @@ export const HorizontalWindBlower: React.FC<HorizontalWindBlowerProps> = ({
   color = '#00e5ff'
 }) => {
   const groupRef = useRef<THREE.Group>(null);
-  const fanBladeRef = useRef<THREE.Mesh>(null);
+  const fanBladeRef = useRef<THREE.Group>(null);
   const audioThrottleRef = useRef(0);
+  
+  // Local state to track Weak/Medium/Strong phase for the HTML speed gauge
+  const [phaseName, setPhaseName] = useState<'weak' | 'medium' | 'strong'>('weak');
 
   useFrame((state, delta) => {
     const elapsed = state.clock.getElapsedTime();
-    const t = elapsed % 7.0; // 7.0s cycle
+    const t = elapsed % 7.5; // 7.5s cycle (2.5s per phase: Weak, Medium, Strong)
     
-    // Wind cycle:
-    // 0.0s - 2.0s: wind OFF (factor = 0)
-    // 2.0s - 3.0s: ramp UP (factor: 0 -> 1)
-    // 3.0s - 6.0s: FULL power (factor = 1)
-    // 6.0s - 7.0s: ramp DOWN (factor: 1 -> 0)
-    let factor = 0;
-    if (t < 2.0) {
-      factor = 0;
-    } else if (t < 3.0) {
-      factor = t - 2.0;
-    } else if (t < 6.0) {
-      factor = 1.0;
+    // Wind cycle smooth interpolation:
+    // Weak: target 0.1, Medium: target 0.5, Strong: target 1.0
+    let factor = 0.1;
+    if (t < 1.25) {
+      const frac = t / 1.25;
+      factor = THREE.MathUtils.lerp(0.55, 0.1, frac);
+    } else if (t < 3.75) {
+      const frac = (t - 1.25) / 2.5;
+      factor = THREE.MathUtils.lerp(0.1, 0.5, frac);
+    } else if (t < 6.25) {
+      const frac = (t - 3.75) / 2.5;
+      factor = THREE.MathUtils.lerp(0.5, 1.0, frac);
     } else {
-      factor = 7.0 - t;
+      const frac = (t - 6.25) / 1.25;
+      factor = THREE.MathUtils.lerp(1.0, 0.55, frac);
+    }
+
+    // Determine current phase name
+    const currentP = t < 2.5 ? 'weak' : t < 5.0 ? 'medium' : 'strong';
+    if (phaseName !== currentP) {
+      setPhaseName(currentP);
     }
 
     // Determine current wind force vector along X axis
@@ -1441,7 +1464,7 @@ export const HorizontalWindBlower: React.FC<HorizontalWindBlowerProps> = ({
 
     // Rotate fan blades based on current wind factor
     if (fanBladeRef.current) {
-      fanBladeRef.current.rotation.y += delta * (0.5 + factor * 22.0); // fast spin when active
+      fanBladeRef.current.rotation.y += delta * (0.6 + factor * 35.0); // fast spin when active
     }
 
     // Sound effect: play whoosh sound at regular intervals when wind is active
@@ -1455,14 +1478,13 @@ export const HorizontalWindBlower: React.FC<HorizontalWindBlowerProps> = ({
       audioThrottleRef.current = 0;
     }
 
-    // Animate wind particles inside the group
-    const particles = groupRef.current?.children.filter((child) => child.name === 'wind-streak');
-    if (particles) {
-      particles.forEach((p, idx) => {
-        // Shift particle position along X axis based on wind direction
-        p.position.x += delta * 15.0 * sign * (0.4 + factor * 1.2);
-        
-        // Wrap around if it goes outside bounds
+    // Animate wind particles (streaks and leaves) inside the group
+    const streaks = groupRef.current?.children.filter((child) => child.name === 'wind-streak');
+    const leaves = groupRef.current?.children.filter((child) => child.name === 'wind-leaf');
+    
+    if (streaks) {
+      streaks.forEach((p, idx) => {
+        p.position.x += delta * 18.0 * sign * (0.3 + factor * 1.5);
         const halfWidth = size[0] / 2;
         if (sign > 0 && p.position.x > halfWidth) {
           p.position.x = -halfWidth;
@@ -1470,16 +1492,37 @@ export const HorizontalWindBlower: React.FC<HorizontalWindBlowerProps> = ({
           p.position.x = halfWidth;
         }
         
-        // scale visual opacity based on wind factor
         const mesh = p as THREE.Mesh;
         if (mesh.material) {
-          (mesh.material as THREE.MeshBasicMaterial).opacity = factor * 0.16 * (0.3 + 0.7 * Math.sin(state.clock.getElapsedTime() * 4 + idx));
+          (mesh.material as THREE.MeshBasicMaterial).opacity = factor * 0.28 * (0.3 + 0.7 * Math.sin(state.clock.getElapsedTime() * 4 + idx));
+        }
+      });
+    }
+
+    if (leaves) {
+      leaves.forEach((l, idx) => {
+        l.position.x += delta * 14.0 * sign * (0.4 + factor * 1.6);
+        l.rotation.x += delta * (2.0 + factor * 10.0);
+        l.rotation.y += delta * (1.0 + factor * 8.0);
+        
+        const halfWidth = size[0] / 2;
+        if (sign > 0 && l.position.x > halfWidth) {
+          l.position.x = -halfWidth;
+        } else if (sign < 0 && l.position.x < -halfWidth) {
+          l.position.x = halfWidth;
+        }
+        
+        const mesh = l as THREE.Mesh;
+        if (mesh.material) {
+          (mesh.material as THREE.MeshStandardMaterial).opacity = factor > 0.35
+            ? factor * 0.7
+            : 0.05;
         }
       });
     }
   });
 
-  // Generate 8 wind particle coordinates deterministically inside the zone volume
+  // Generate 8 wind streaks and 8 leaves deterministically inside the zone volume
   const particleConfigs = useMemo<Array<{ pos: [number, number, number] }>>(() => {
     const arr: Array<{ pos: [number, number, number] }> = [];
     for (let i = 0; i < 8; i++) {
@@ -1491,51 +1534,188 @@ export const HorizontalWindBlower: React.FC<HorizontalWindBlowerProps> = ({
     return arr;
   }, [size]);
 
+  const leafConfigs = useMemo<Array<{ pos: [number, number, number]; scale: number; rotOffset: number }>>(() => {
+    const arr: Array<{ pos: [number, number, number]; scale: number; rotOffset: number }> = [];
+    for (let i = 0; i < 8; i++) {
+      const rx = (Math.random() - 0.5) * size[0];
+      const ry = (Math.random() - 0.5) * size[1] + 0.5;
+      const rz = (Math.random() - 0.5) * size[2];
+      arr.push({
+        pos: [rx, ry, rz],
+        scale: 0.08 + Math.random() * 0.1,
+        rotOffset: Math.random() * Math.PI * 2,
+      });
+    }
+    return arr;
+  }, [size]);
+
   // Position of the fan body
-  const fanX = direction === 'left' ? size[0] / 2 + 0.35 : -size[0] / 2 - 0.35;
+  const fanX = direction === 'left' ? size[0] / 2 + 0.45 : -size[0] / 2 - 0.45;
   const fanRot = direction === 'left' ? Math.PI / 2 : -Math.PI / 2;
+
+  // Colors based on phase name for the HTML UI and casing lights
+  const uiColor = phaseName === 'weak' ? '#00e5ff' : phaseName === 'medium' ? '#ffd60a' : '#ff007f';
 
   return (
     <group ref={groupRef} position={position} name="wind-zone" userData={{ size, force: [0, 0, 0] }}>
-      {/* 1. Large Stylized Fan Blower body */}
+      
+      {/* 1. Floating HTML Speed Gauge Dashboard */}
+      <Html distanceFactor={11} position={[fanX, 2.2, 0]} transform>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          background: 'rgba(15, 23, 42, 0.88)',
+          border: `2px solid ${uiColor}aa`,
+          borderRadius: '12px',
+          padding: '8px 12px',
+          boxShadow: `0 4px 20px rgba(0, 0, 0, 0.6), 0 0 10px ${uiColor}44`,
+          color: '#ffffff',
+          fontFamily: 'system-ui, sans-serif',
+          width: '110px',
+          userSelect: 'none',
+          pointerEvents: 'none',
+          textAlign: 'center',
+        }}>
+          {/* Segmented Arc/Bar */}
+          <div style={{ display: 'flex', gap: '4px', width: '100%', height: '8px', marginBottom: '6px' }}>
+            <div style={{
+              flex: 1,
+              background: '#00e5ff',
+              borderRadius: '4px',
+              opacity: phaseName === 'weak' ? 1 : 0.2,
+              boxShadow: phaseName === 'weak' ? '0 0 12px #00e5ff' : 'none',
+              transition: 'opacity 0.2s, box-shadow 0.2s',
+            }} />
+            <div style={{
+              flex: 1,
+              background: '#ffd60a',
+              borderRadius: '4px',
+              opacity: phaseName === 'medium' ? 1 : 0.2,
+              boxShadow: phaseName === 'medium' ? '0 0 12px #ffd60a' : 'none',
+              transition: 'opacity 0.2s, box-shadow 0.2s',
+            }} />
+            <div style={{
+              flex: 1,
+              background: '#ff007f',
+              borderRadius: '4px',
+              opacity: phaseName === 'strong' ? 1 : 0.2,
+              boxShadow: phaseName === 'strong' ? '0 0 12px #ff007f' : 'none',
+              transition: 'opacity 0.2s, box-shadow 0.2s',
+            }} />
+          </div>
+          
+          <div style={{
+            fontSize: '0.65rem',
+            fontWeight: 800,
+            color: 'rgba(255, 255, 255, 0.5)',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+          }}>
+            Wind Power
+          </div>
+          <div style={{
+            fontSize: '0.9rem',
+            fontWeight: 900,
+            color: uiColor,
+            textShadow: `0 0 8px ${uiColor}`,
+            textTransform: 'uppercase',
+            marginTop: '2px',
+          }}>
+            {phaseName}
+          </div>
+        </div>
+      </Html>
+
+      {/* 2. Premium Stylized Fan Blower body */}
       <group position={[fanX, 0.5, 0]} rotation={[0, 0, fanRot]}>
+        
         {/* Base cylinder housing */}
         <mesh castShadow>
-          <cylinderGeometry args={[0.75, 0.85, 0.6, 12]} />
-          <meshStandardMaterial color="#455a64" roughness={0.4} metalness={0.7} />
-        </mesh>
-        
-        {/* Blower exhaust guard rim */}
-        <mesh position={[0, 0.31, 0]}>
-          <cylinderGeometry args={[0.82, 0.82, 0.12, 12]} />
-          <meshStandardMaterial color="#37474f" roughness={0.2} />
+          <cylinderGeometry args={[0.85, 0.95, 0.65, 16]} />
+          <meshStandardMaterial color="#bd00ff" roughness={0.15} metalness={0.5} />
         </mesh>
         
         {/* Colorful visual cap accent */}
-        <mesh position={[0, -0.31, 0]}>
-          <cylinderGeometry args={[0.65, 0.7, 0.1, 12]} />
-          <meshStandardMaterial color={color} roughness={0.3} />
+        <mesh position={[0, -0.32, 0]}>
+          <cylinderGeometry args={[0.7, 0.8, 0.1, 16]} />
+          <meshStandardMaterial color="#ff007f" roughness={0.1} />
+        </mesh>
+
+        {/* Glow Light ring */}
+        <mesh position={[0, -0.2, 0]}>
+          <torusGeometry args={[0.88, 0.05, 8, 20]} />
+          <meshStandardMaterial color={uiColor} emissive={uiColor} emissiveIntensity={0.6} />
         </mesh>
 
         {/* Rotating Blades */}
-        <mesh ref={fanBladeRef} position={[0, 0.2, 0]}>
-          <boxGeometry args={[1.3, 0.1, 0.15]} />
-          <meshStandardMaterial color="#ffffff" roughness={0.1} />
-        </mesh>
+        <group ref={fanBladeRef} position={[0, 0.1, 0]}>
+          <mesh castShadow>
+            <cylinderGeometry args={[0.24, 0.24, 0.28, 12]} />
+            <meshStandardMaterial color="#ffd60a" roughness={0.2} />
+          </mesh>
+          <mesh castShadow position={[0, 0.06, 0.25]} rotation={[0, 0, 0.2]}>
+            <boxGeometry args={[0.22, 0.06, 0.5]} />
+            <meshStandardMaterial color="#ff6d00" roughness={0.15} />
+          </mesh>
+          <mesh castShadow position={[0.22, 0.06, -0.13]} rotation={[0, Math.PI * 2 / 3, 0.2]}>
+            <boxGeometry args={[0.22, 0.06, 0.5]} />
+            <meshStandardMaterial color="#ff6d00" roughness={0.15} />
+          </mesh>
+          <mesh castShadow position={[-0.22, 0.06, -0.13]} rotation={[0, -Math.PI * 2 / 3, 0.2]}>
+            <boxGeometry args={[0.22, 0.06, 0.5]} />
+            <meshStandardMaterial color="#ff6d00" roughness={0.15} />
+          </mesh>
+        </group>
+
+        {/* 3D Curved Protective Dome Grille Over Fan */}
+        <group position={[0, 0.16, 0]}>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.8, 0.06, 6, 20]} />
+            <meshStandardMaterial color="#ff007f" roughness={0.15} />
+          </mesh>
+          <mesh position={[0, 0.05, 0]} rotation={[0, 0, 0]}>
+            <torusGeometry args={[0.78, 0.045, 6, 16, Math.PI]} />
+            <meshStandardMaterial color="#ff3d00" roughness={0.15} />
+          </mesh>
+          <mesh position={[0, 0.05, 0]} rotation={[0, Math.PI / 2, 0]}>
+            <torusGeometry args={[0.78, 0.045, 6, 16, Math.PI]} />
+            <meshStandardMaterial color="#ff3d00" roughness={0.15} />
+          </mesh>
+          <mesh position={[0, 0.78, 0]}>
+            <sphereGeometry args={[0.12, 10, 10]} />
+            <meshStandardMaterial color="#ff007f" />
+          </mesh>
+        </group>
+
       </group>
 
-      {/* 2. Visual Wind streaks */}
+      {/* 3. Visual Wind streaks */}
       {particleConfigs.map((cfg: { pos: [number, number, number] }, idx: number) => (
         <mesh key={idx} name="wind-streak" position={cfg.pos}>
-          <boxGeometry args={[0.8, 0.04, 0.04]} />
+          <boxGeometry args={[0.9, 0.035, 0.035]} />
           <meshBasicMaterial color="#ffffff" transparent opacity={0.0} />
         </mesh>
       ))}
 
-      {/* 3. Transparent wind tunnel visual indicator bounds */}
+      {/* 4. Flying Leaf / Debris Particles */}
+      {leafConfigs.map((cfg: { pos: [number, number, number]; scale: number; rotOffset: number }, idx: number) => (
+        <mesh
+          key={idx}
+          name="wind-leaf"
+          position={cfg.pos}
+          scale={[cfg.scale, cfg.scale * 0.15, cfg.scale * 0.7]}
+          rotation={[cfg.rotOffset, cfg.rotOffset, 0]}
+        >
+          <boxGeometry args={[1, 1, 1]} />
+          <meshStandardMaterial color={idx % 2 === 0 ? '#39ff14' : '#8b5a2b'} transparent opacity={0.0} roughness={0.6} />
+        </mesh>
+      ))}
+
+      {/* 5. Transparent wind tunnel visual indicator bounds */}
       <mesh position={[0, 0.5, 0]}>
         <boxGeometry args={size} />
-        <meshBasicMaterial color={color} transparent opacity={0.03} wireframe />
+        <meshBasicMaterial color={uiColor} transparent opacity={0.02} wireframe />
       </mesh>
     </group>
   );

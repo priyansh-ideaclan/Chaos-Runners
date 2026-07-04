@@ -24,26 +24,27 @@ export const LEVEL_1_LANDMARKS: LandmarkConfig[] = [
   { pos: [7.5, 0.5, 22.5], section: 'Right Path Moving Platform' },// LM 18
   { pos: [7.5, 0.8, 28.0], section: 'Right Path Speed Pad' },      // LM 19
   { pos: [7.5, 0.5, 34.0], section: 'Right Path Hammer' },         // LM 20
-  { pos: [0.0, 1.0, 42.6], section: 'Checkpoint 2' },             // LM 21
-  { pos: [0.0, 1.4, 44.5], section: 'Jump Pad Launch' },          // LM 22
-  { pos: [0.0, 7.5, 52.0], section: 'Sky Storey Ascent' },        // LM 23
-  { pos: [0.0, 7.5, 57.0], section: 'Sky Storey High Deck' },      // LM 24
-  { pos: [-3.5, 8.3, 63.5], section: 'Sky Storey Ice Deck' },      // LM 25
-  { pos: [3.5, 9.1, 68.0], section: 'Windmill Bridge Entrance' },  // LM 26
-  { pos: [3.5, 9.1, 71.0], section: 'Windmill Bridge Exit' },      // LM 27
-  { pos: [0.0, 10.7, 73.0], section: 'Checkpoint 3' },            // LM 28
-  { pos: [-5.0, 7.8, 81.0], section: 'Left Water Slide' },         // LM 29
-  { pos: [0.0, 7.8, 81.0], section: 'Middle Rainbow Slide' },      // LM 30
-  { pos: [5.0, 7.8, 81.0], section: 'Right Ice Slide' },           // LM 31
-  { pos: [0.0, 4.5, 88.0], section: 'Slide Landing Sweeper' },    // LM 32
-  { pos: [-8.5, 4.5, 88.0], section: 'Left Mud Trap' },            // LM 33
-  { pos: [8.5, 4.5, 88.0], section: 'Right Mud Trap' },            // LM 34
-  { pos: [3.5, 4.5, 94.0], section: 'Swinging Pendulum Hammer' },  // LM 35
-  { pos: [0.0, 4.5, 100.0], section: 'Checkpoint 4' },            // LM 36
-  { pos: [0.0, 4.5, 105.0], section: 'Sprint Road Start' },        // LM 37
-  { pos: [-3.0, 4.5, 109.0], section: 'Moving Barrier Gates' },     // LM 38
-  { pos: [3.0, 4.5, 112.5], section: 'Balance Beam & Fan' },       // LM 39
-  { pos: [0.0, 1.5, 120.0], section: 'Slanted Finish Ramp' },      // LM 40
-  { pos: [0.0, -1.2, 128.0], section: 'Final Sweeper Hazard' },    // LM 41
-  { pos: [0.0, -1.2, 135.0], section: 'Finish Trigger Sensor' }    // LM 42
+  { pos: [0.0, 1.0, 40.6], section: 'Checkpoint 2' },             // LM 21
+  { pos: [0.0, 1.2, 44.5], section: 'Wind Blower Corridor' },     // LM 22
+  { pos: [0.0, 1.05, 47.0], section: 'Jump Pad Launch' },         // LM 23
+  { pos: [0.0, 7.5, 51.5], section: 'Sky Storey Ascent' },        // LM 24
+  { pos: [0.0, 7.5, 54.0], section: 'Sky Storey High Deck' },      // LM 25
+  { pos: [-3.5, 8.3, 61.0], section: 'Sky Storey Ice Deck' },      // LM 26
+  { pos: [3.5, 9.1, 64.0], section: 'Windmill Bridge Entrance' },  // LM 27
+  { pos: [3.5, 9.1, 67.0], section: 'Windmill Bridge Exit' },      // LM 28
+  { pos: [0.0, 10.7, 72.0], section: 'Checkpoint 3' },            // LM 29
+  { pos: [-5.0, 7.8, 81.0], section: 'Left Water Slide' },         // LM 30
+  { pos: [0.0, 7.8, 81.0], section: 'Middle Rainbow Slide' },      // LM 31
+  { pos: [5.0, 7.8, 81.0], section: 'Right Ice Slide' },           // LM 32
+  { pos: [0.0, 4.5, 88.0], section: 'Slide Landing Sweeper' },    // LM 33
+  { pos: [-8.5, 4.5, 88.0], section: 'Left Mud Trap' },            // LM 34
+  { pos: [8.5, 4.5, 88.0], section: 'Right Mud Trap' },            // LM 35
+  { pos: [3.5, 4.5, 94.0], section: 'Swinging Pendulum Hammer' },  // LM 36
+  { pos: [0.0, 4.5, 100.0], section: 'Checkpoint 4' },            // LM 37
+  { pos: [0.0, 4.5, 105.0], section: 'Sprint Road Start' },        // LM 38
+  { pos: [-3.0, 4.5, 109.0], section: 'Moving Barrier Gates' },     // LM 39
+  { pos: [3.0, 4.5, 112.5], section: 'Balance Beam & Fan' },       // LM 40
+  { pos: [0.0, 1.5, 120.0], section: 'Slanted Finish Ramp' },      // LM 41
+  { pos: [0.0, -1.2, 128.0], section: 'Final Sweeper Hazard' },    // LM 42
+  { pos: [0.0, -1.2, 135.0], section: 'Finish Trigger Sensor' }    // LM 43
 ];

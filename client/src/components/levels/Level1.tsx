@@ -280,7 +280,6 @@ export const Level1: React.FC = () => {
 
       {/* Platform D: Moving Z flat platform */}
       <MovingPlatform position={[-1.2, 0.85, 39.0]} size={[4.0, 0.5, 4.0]} direction="z" range={0.8} speed={1.0} color="#ff2a85" />
-      <HorizontalWindBlower position={[-1.2, 1.25, 39.0]} size={[4.0, 2.0, 2.5]} baseForce={24.0} direction="right" color="#ffd60a" />
 
       {/* ── RIGHT PATHWAY (HARD / SHORT) ── */}
       <MovingPlatform position={[7.5, 0.1, 22.5]} size={[4.0, 0.5, 4.0]} direction="y" range={0.8} speed={1.5} color="#ffd60a" />
@@ -302,27 +301,27 @@ export const Level1: React.FC = () => {
 
 
       {/* ── SECTION 3: POWER JUMP & VERTICAL STORY (SKY ZONE) (Z = 45 to Z = 80) ── */}
-      <Checkpoint position={[0, 1.0, 42.6]} id={2} />
-      <ConfettiCannon position={[-5.5, 1.0, 42.6]} active={isCp2Active} />
-      <ConfettiCannon position={[5.5, 1.0, 42.6]} active={isCp2Active} />
+      <Checkpoint position={[0, 1.0, 40.6]} id={2} />
+      <ConfettiCannon position={[-5.5, 1.0, 40.6]} active={isCp2Active} />
+      <ConfettiCannon position={[5.5, 1.0, 40.6]} active={isCp2Active} />
 
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[7.0, 0.4, 2.5]} position={[0, 0.6, 42.6]} />
-        <mesh receiveShadow position={[0, 0.6, 42.6]}>
-          <boxGeometry args={[14, 0.8, 5]} />
+        <CuboidCollider args={[7.0, 0.4, 4.5]} position={[0, 0.6, 44.5]} />
+        <mesh receiveShadow position={[0, 0.6, 44.5]}>
+          <boxGeometry args={[14, 0.8, 9]} />
           <meshStandardMaterial color={config.groundColor} roughness={0.5} />
         </mesh>
       </RigidBody>
       
       {/* Horizontal Wind Blower at Checkpoint 2 (Landmark 21) */}
-      <HorizontalWindBlower position={[0.0, 1.0, 42.6]} size={[14.0, 2.0, 2.5]} baseForce={26.0} direction="left" color="#00e5ff" />
+      <HorizontalWindBlower position={[0.0, 1.0, 42.5]} size={[14.0, 2.0, 2.5]} baseForce={34.0} direction="left" color="#00e5ff" />
 
-      {/* Dual Jump Pads side-by-side! Launches players high into sky storey platform */}
-      <JumpPad position={[-2.5, 1.05, 44.5]} boostForce={22.0} color="#00e5ff" />
-      <JumpPad position={[2.5, 1.05, 44.5]} boostForce={22.0} color="#00e5ff" />
+      {/* Dual Large Jump Pads side-by-side! Launches players high into sky storey platform */}
+      <JumpPad position={[-2.2, 1.05, 47.0]} boostForce={24.0} color="#00e5ff" scale={1.6} />
+      <JumpPad position={[2.2, 1.05, 47.0]} boostForce={24.0} color="#00e5ff" scale={1.6} />
       
       {/* Horizontal Wind Blower at Jump Pad launch (Landmark 22) */}
-      <HorizontalWindBlower position={[0.0, 1.4, 44.5]} size={[14.0, 2.0, 2.5]} baseForce={26.0} direction="right" color="#ff007f" />
+      <HorizontalWindBlower position={[0.0, 1.4, 46.5]} size={[14.0, 2.0, 2.5]} baseForce={34.0} direction="right" color="#ff007f" />
 
       {/* Autumn Forest Scenery along Section 3 */}
       <DecorativeTree position={[-7.5, 6.7, 52]} type="candy" variant="candy-purple" scale={1.2} />
@@ -330,42 +329,42 @@ export const Level1: React.FC = () => {
       <DecorativeTree position={[-7.5, 6.7, 60]} type="candy" variant="candy-green" scale={1.1} />
       <DecorativeTree position={[7.5, 6.7, 66]} type="candy" variant="candy-blue" scale={1.3} />
 
-      {/* Storey 1 (High Landing Deck) at Z = 57, Y = 7.5 */}
+      {/* Storey 1 (High Landing Deck) at Z = 54.0, Y = 7.5 */}
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[6.0, 0.4, 4.0]} position={[0, 7.1, 57.0]} />
-        <mesh receiveShadow position={[0, 7.1, 57.0]}>
+        <CuboidCollider args={[6.0, 0.4, 4.0]} position={[0, 7.1, 54.0]} />
+        <mesh receiveShadow position={[0, 7.1, 54.0]}>
           <boxGeometry args={[12.0, 0.8, 8.0]} />
           <meshStandardMaterial color="#00e5ff" roughness={0.3} metalness={0.2} />
         </mesh>
       </RigidBody>
-      <WavingFlag position={[-5.5, 7.5, 57.0]} color="#00e5ff" />
-      <WavingFlag position={[5.5, 7.5, 57.0]} color="#ff007f" />
+      <WavingFlag position={[-5.5, 7.5, 54.0]} color="#00e5ff" />
+      <WavingFlag position={[5.5, 7.5, 54.0]} color="#ff007f" />
 
-      {/* Storey 2 (Ice Platform left) at Z = 63.5, Y = 8.3 */}
-      <IcePlatform position={[-3.5, 7.9, 63.5]} size={[5.0, 0.8, 5.0]} color="#b2f2ff" />
-      <DecorativeTree position={[-7.5, 8.3, 63.5]} type="candy" variant="candy-purple" scale={0.8} />
+      {/* Storey 2 (Ice Platform left) at Z = 61.0, Y = 8.3 */}
+      <IcePlatform position={[-3.5, 7.9, 61.0]} size={[5.0, 0.8, 5.0]} color="#b2f2ff" />
+      <DecorativeTree position={[-7.5, 8.3, 61.0]} type="candy" variant="candy-purple" scale={0.8} />
 
-      {/* Storey 3 (Static bridge and rotating Windmills) at Z = 68.0, Y = 9.5 */}
+      {/* Storey 3 (Static bridge and rotating Windmills) at Z = 65.0, Y = 9.5 */}
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[3.0, 0.4, 3.0]} position={[3.5, 8.7, 68.0]} />
-        <mesh receiveShadow position={[3.5, 8.7, 68.0]}>
+        <CuboidCollider args={[3.0, 0.4, 3.0]} position={[3.5, 8.7, 65.0]} />
+        <mesh receiveShadow position={[3.5, 8.7, 65.0]}>
           <boxGeometry args={[6.0, 0.8, 6.0]} />
           <meshStandardMaterial color={config.groundColor} roughness={0.6} />
         </mesh>
       </RigidBody>
-      <mesh position={[0.45, 9.3, 68.0]} castShadow>
+      <mesh position={[0.45, 9.3, 65.0]} castShadow>
         <boxGeometry args={[0.1, 0.8, 6.0]} />
         <meshStandardMaterial color="#ffd60a" roughness={0.3} />
       </mesh>
       
       {/* Dual Windmill Obstacles on bridge! Opposite rotation makes it dynamic */}
-      <Windmill position={[1.8, 10.5, 68.0]} speed={1.8} color="#ffd60a" />
-      <Windmill position={[5.2, 10.5, 68.0]} speed={-1.6} color="#ffd60a" />
+      <Windmill position={[1.8, 10.5, 65.0]} speed={1.8} color="#ffd60a" />
+      <Windmill position={[5.2, 10.5, 65.0]} speed={-1.6} color="#ffd60a" />
 
-      {/* Storey 4 (Merge deck with Checkpoint) at Z = 73.0, Y = 10.7 */}
+      {/* Storey 4 (Merge deck with Checkpoint) at Z = 72.0, Y = 10.7 */}
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[6.0, 0.4, 2.5]} position={[0, 10.3, 73.0]} />
-        <mesh receiveShadow position={[0, 10.3, 73.0]}>
+        <CuboidCollider args={[6.0, 0.4, 2.5]} position={[0, 10.3, 72.0]} />
+        <mesh receiveShadow position={[0, 10.3, 72.0]}>
           <boxGeometry args={[12.0, 0.8, 5.0]} />
           <meshStandardMaterial color={config.groundColor} roughness={0.6} />
         </mesh>

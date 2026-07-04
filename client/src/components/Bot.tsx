@@ -23,11 +23,11 @@ const LEVEL_1_LEFT_PATH: [number, number, number][] = [
   [-7.5, 0, 15.0],   // Left lane entry
   [-7.5, 0, 26.5],   // Left grass walkway
   [-7.5, 0.5, 33.0],  // Left mud area
-  [0, 1.0, 42.6],    // Merge Checkpoint 2
-  [0, 1.05, 44.5],   // Jump Pad
-  [0, 7.5, 60.0],    // Landing deck Storey 1
-  [-3.5, 7.9, 63.5], // Ice platform left Storey 2
-  [0, 10.3, 73.0],   // Checkpoint 3 Storey 4
+  [0, 1.0, 40.6],    // Merge Checkpoint 2
+  [0, 1.05, 47.0],   // Jump Pad
+  [0, 7.5, 54.0],    // Landing deck Storey 1
+  [-3.5, 7.9, 61.0], // Ice platform left Storey 2
+  [0, 10.3, 72.0],   // Checkpoint 3 Storey 4
   [-5.0, 8.5, 76.0], // Left water slide entry
   [-5.0, 5.0, 83.0], // Left water slide mid
   [0, 4.1, 88.0],    // Slide landing deck
@@ -50,11 +50,11 @@ const LEVEL_1_MIDDLE_PATH: [number, number, number][] = [
   [-1.2, 0.35, 31.8], // Platform B
   [1.2, 0.6, 35.4],  // Platform C
   [-1.2, 0.85, 39.0], // Platform D
-  [0, 1.0, 42.6],    // Checkpoint 2
-  [0, 1.05, 44.5],   // Jump Pad
-  [0, 7.5, 60.0],    // Landing deck Storey 1
-  [0, 7.5, 60.0],    // Stay in center
-  [0, 10.3, 73.0],   // Checkpoint 3 Storey 4
+  [0, 1.0, 40.6],    // Checkpoint 2
+  [0, 1.05, 47.0],   // Jump Pad
+  [0, 7.5, 54.0],    // Landing deck Storey 1
+  [0, 7.5, 54.0],    // Stay in center
+  [0, 10.3, 72.0],   // Checkpoint 3 Storey 4
   [0.0, 8.5, 76.0],  // Middle slide entry
   [0.0, 5.0, 83.0],  // Middle slide mid
   [0, 4.1, 88.0],    // Slide landing deck
@@ -75,11 +75,11 @@ const LEVEL_1_RIGHT_PATH: [number, number, number][] = [
   [7.5, 0.1, 22.5],  // Right moving platform
   [7.5, 0.4, 28.0],  // Speed pad right
   [7.5, 0.1, 34.0],  // Hammer platform
-  [0, 1.0, 42.6],    // Checkpoint 2
-  [0, 1.05, 44.5],   // Jump Pad
-  [0, 7.5, 60.0],    // Landing deck Storey 1
-  [3.5, 9.1, 68.0],  // Bridge right Storey 3
-  [0, 10.3, 73.0],   // Checkpoint 3 Storey 4
+  [0, 1.0, 40.6],    // Checkpoint 2
+  [0, 1.05, 47.0],   // Jump Pad
+  [0, 7.5, 54.0],    // Landing deck Storey 1
+  [3.5, 9.1, 65.0],  // Bridge right Storey 3
+  [0, 10.3, 72.0],   // Checkpoint 3 Storey 4
   [5.0, 8.5, 76.0],  // Right slide entry
   [5.0, 5.0, 83.0],  // Right slide mid
   [0, 4.1, 88.0],    // Slide landing deck
@@ -498,7 +498,12 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
     // 4a. Wind zone cycle evasion check (Bots wait before crossing if wind is high)
     let isHeadingIntoStrongWind = false;
     const botIndex = parseInt(id.replace(/\D/g, '')) || 0;
-    const windZonesList = state.scene.children.filter((child) => child.name === 'wind-zone');
+    const windZonesList: THREE.Object3D[] = [];
+    state.scene.traverse((child) => {
+      if (child.name === 'wind-zone') {
+        windZonesList.push(child);
+      }
+    });
     windZonesList.forEach((zone) => {
       const zonePos = new THREE.Vector3();
       zone.getWorldPosition(zonePos);
@@ -514,8 +519,9 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
           Math.abs(dz) < zoneSize[2] / 2
         ) {
           const elapsed = state.clock.getElapsedTime();
-          const t = elapsed % 7.0; // 7.0s wind cycle
-          const isWindStrong = t > 2.2 && t < 5.8;
+          const t = elapsed % 7.5; // 7.5s cycle (2.5s per phase: Weak, Medium, Strong)
+          // Strong wind is in the last phase of the cycle (5.0s to 7.5s)
+          const isWindStrong = t >= 4.5 && t <= 7.3;
           if (isWindStrong) {
             // Decide if the bot commits a mistake based on bot index pattern
             const hasMistake = botIndex % 5 === 0;
@@ -535,7 +541,12 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
     // 4b. Wind Zone detection
     let windForceX = 0;
     let windForceZ = 0;
-    const windZones = state.scene.children.filter((child) => child.name === 'wind-zone');
+    const windZones: THREE.Object3D[] = [];
+    state.scene.traverse((child) => {
+      if (child.name === 'wind-zone') {
+        windZones.push(child);
+      }
+    });
     windZones.forEach((zone) => {
       const zonePos = new THREE.Vector3();
       zone.getWorldPosition(zonePos);
@@ -570,6 +581,11 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
 
       if (targetNode) {
         const targetPos = new THREE.Vector3(...targetNode).add(targetOffset.current);
+        
+        // Dynamically split bots to left/right large Jump Pads at Z = 47.0
+        if (Math.abs(targetNode[2] - 47.0) < 0.1) {
+          targetPos.x = botIndex % 2 === 0 ? -2.2 : 2.2;
+        }
         
         // Dynamically adjust Route Choice on node 16 (which is index 16)
         if (currentLevelId === 'race_1' && currentNodeIndex.current === 999) {
@@ -861,6 +877,11 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
     let moveTargetZ = steerDir.z * activeSpeed;
     let moveTargetY = vel.y;
 
+    // Apply slight upward lift when bot is caught by strong wind
+    if (Math.abs(windForceX) > 2.8) {
+      moveTargetY += delta * 6.5;
+    }
+
     if (shouldJump && jumpCooldown.current <= 0 && jumpCountRef.current < 2) {
       moveTargetY = jumpImpulse;
       jumpCooldown.current = 0.5;
@@ -934,7 +955,34 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       rArm.rotation.set(0, 0, -0.15);
       visual.position.y = -0.12;
 
-      if (isSliding) {
+      if (Math.abs(windForceX) > 0.4) {
+        const absWindX = Math.abs(windForceX);
+        const clockTime = state.clock.getElapsedTime();
+        
+        // 1. Lean into the wind to fight it
+        visual.rotation.z = -windForceX * 0.055;
+        
+        // 2. Wobble side-to-side losing balance
+        const wobble = Math.sin(clockTime * 18.0) * 0.08 * (absWindX / 3.0);
+        visual.rotation.x = wobble;
+        
+        // 3. Feet slide across platform: slide wobble offset
+        visual.position.x = Math.cos(clockTime * 22.0) * 0.04 * (absWindX / 2.0);
+        
+        // 4. Arms & legs flailing frantically
+        const flailTime = clockTime * 28.0;
+        lArm.rotation.set(-Math.PI / 4, 0.4, -Math.PI / 2.5 + Math.sin(flailTime) * 0.65);
+        rArm.rotation.set(-Math.PI / 4, -0.4, Math.PI / 2.5 + Math.cos(flailTime) * 0.65);
+        lLeg.rotation.x = Math.sin(flailTime) * 0.4;
+        rLeg.rotation.x = Math.cos(flailTime) * 0.4;
+
+        if (!isGroundedRef.current && absWindX > 2.0) {
+          // Mid-air tumble: spin visual group continuously
+          const spinSpeed = clockTime * 4.2;
+          visual.rotation.z = spinSpeed * Math.sign(windForceX);
+          visual.rotation.x = spinSpeed * 0.55;
+        }
+      } else if (isSliding) {
         // Slide pose: lean forward, arms out, feet back
         visual.rotation.x = Math.PI / 4.5;
         lLeg.rotation.x = 0.4;

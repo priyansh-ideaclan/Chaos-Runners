@@ -81,8 +81,10 @@ interface GameState {
   devLandmarkIndex: number;
   devLandmarkDistance: number;
   devShowDetails: boolean;
+  isGodMode: boolean;
   setDevLandmarkInfo: (index: number, distance: number) => void;
   toggleDevShowDetails: () => void;
+  toggleGodMode: () => void;
   splashes: Array<{ id: string; position: [number, number, number]; color: string }>;
   isNitroActive: boolean;
   nitroCooldown: number;
@@ -269,8 +271,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   devLandmarkIndex: -1,
   devLandmarkDistance: 0,
   devShowDetails: true,
+  isGodMode: false,
   setDevLandmarkInfo: (index, distance) => set({ devLandmarkIndex: index, devLandmarkDistance: distance }),
   toggleDevShowDetails: () => set((state) => ({ devShowDetails: !state.devShowDetails })),
+  toggleGodMode: () => set((state) => ({ isGodMode: !state.isGodMode })),
   splashes: [],
   isNitroActive: false,
   nitroCooldown: 0,

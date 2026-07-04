@@ -12,7 +12,7 @@ import { LEVEL_1_LANDMARKS } from '../utils/landmarks';
 
 export const Player: React.FC = () => {
   const controls = useGameControls();
-  const { lastCheckpoint, phase, triggerWin, triggerLoss, showDebugCheckpoints } = useGameStore();
+  const { lastCheckpoint, phase, triggerWin, triggerLoss, showDebugCheckpoints, isGodMode } = useGameStore();
   const isNitroActive = useGameStore((state) => state.isNitroActive);
   const nitroCooldown = useGameStore((state) => state.nitroCooldown);
   const triggerNitro = useGameStore((state) => state.triggerNitro);
@@ -177,6 +177,43 @@ export const Player: React.FC = () => {
       }
     }
 
+    // God Mode Free Flight Logic
+    if (isGodMode) {
+      const flySpeed = controls.nitro ? 75.0 : 25.0;
+      
+      const camDir = new THREE.Vector3();
+      camera.getWorldDirection(camDir);
+      camDir.normalize();
+      
+      const camRight = new THREE.Vector3();
+      camRight.crossVectors(new THREE.Vector3(0, 1, 0), camDir).normalize();
+      
+      const moveVec = new THREE.Vector3();
+      if (activeControls.forward) moveVec.add(camDir);
+      if (activeControls.backward) moveVec.sub(camDir);
+      if (activeControls.left) moveVec.add(camRight);
+      if (activeControls.right) moveVec.sub(camRight);
+      
+      // Space to fly up, Ctrl/C/E to fly down
+      if (activeControls.jump) moveVec.y += 1.0;
+      if (activeControls.dive || controls.grab) moveVec.y -= 1.0;
+      
+      if (moveVec.lengthSq() > 0) {
+        moveVec.normalize().multiplyScalar(flySpeed * delta);
+        const newPos = new THREE.Vector3(pos.x + moveVec.x, pos.y + moveVec.y, pos.z + moveVec.z);
+        rigidBody.setNextKinematicTranslation(newPos);
+      }
+      
+      rigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      rigidBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
+      
+      if (visualGroupRef.current) {
+        const targetRot = Math.atan2(-camDir.x, -camDir.z);
+        visualGroupRef.current.rotation.y = targetRot;
+      }
+      return;
+    }
+
     // Trigger forward boost impulse on activation
     const justActivatedNitro = isNitroActive && !wasNitroActiveRef.current;
     wasNitroActiveRef.current = isNitroActive;
@@ -229,7 +266,7 @@ export const Player: React.FC = () => {
     }
 
     // 1. Respawn if fell into void
-    if (pos.y < -8) {
+    if (pos.y < -8 && !isGodMode) {
       useGameStore.getState().triggerSplash([pos.x, -8.2, pos.z], '#ff007f');
       const respawnPoint = lastCheckpoint || [0, 4, 0];
       rigidBody.setTranslation(new THREE.Vector3(...respawnPoint), true);
@@ -335,7 +372,12 @@ export const Player: React.FC = () => {
     // 4b. Wind Zone detection
     let windForceX = 0;
     let windForceZ = 0;
-    const windZones = state.scene.children.filter((child) => child.name === 'wind-zone');
+    const windZones: THREE.Object3D[] = [];
+    state.scene.traverse((child) => {
+      if (child.name === 'wind-zone') {
+        windZones.push(child);
+      }
+    });
     windZones.forEach((zone) => {
       const zonePos = new THREE.Vector3();
       zone.getWorldPosition(zonePos);
@@ -420,6 +462,11 @@ export const Player: React.FC = () => {
     const nextVelZ = THREE.MathUtils.lerp(currentVel.z, targetZ + windForceZ + conveyorSpeed, accelerationRatio);
 
     let nextVelY = currentVel.y;
+    
+    // Apply slight upward lift when player is caught by strong wind
+    if (Math.abs(windForceX) > 2.8) {
+      nextVelY += delta * 6.5;
+    }
     
     // Jump trigger (Double Jump Limit)
     if (justPressedJump && !isDivingRef.current) {
@@ -530,6 +577,32 @@ export const Player: React.FC = () => {
         rLeg.rotation.x = -Math.sin(clockTime * 12) * 0.2;
         lArm.rotation.set(Math.sin(clockTime * 10) * 0.5 - 1.2, 0, 0.4);
         rArm.rotation.set(Math.sin(clockTime * 10) * 0.5 - 1.2, 0, -0.4);
+      } else if (Math.abs(windForceX) > 0.4 && !isGodMode) {
+        const absWindX = Math.abs(windForceX);
+        
+        // 1. Lean into the wind to fight it
+        visual.rotation.z = -windForceX * 0.055;
+        
+        // 2. Wobble side-to-side losing balance
+        const wobble = Math.sin(clockTime * 18.0) * 0.08 * (absWindX / 3.0);
+        visual.rotation.x = wobble;
+        
+        // 3. Feet slide across platform: slide wobble offset
+        visual.position.x = Math.cos(clockTime * 22.0) * 0.04 * (absWindX / 2.0);
+        
+        // 4. Arms & legs flailing frantically
+        const flailTime = clockTime * 28.0;
+        lArm.rotation.set(-Math.PI / 4, 0.4, -Math.PI / 2.5 + Math.sin(flailTime) * 0.65);
+        rArm.rotation.set(-Math.PI / 4, -0.4, Math.PI / 2.5 + Math.cos(flailTime) * 0.65);
+        lLeg.rotation.x = Math.sin(flailTime) * 0.4;
+        rLeg.rotation.x = Math.cos(flailTime) * 0.4;
+
+        if (!isGroundedRef.current && absWindX > 2.0) {
+          // Mid-air tumble: spin visual group continuously
+          const spinSpeed = clockTime * 4.2;
+          visual.rotation.z = spinSpeed * Math.sign(windForceX);
+          visual.rotation.x = spinSpeed * 0.55;
+        }
       } else if (isDivingRef.current) {
         visual.rotation.x = Math.PI / 2;
         lLeg.rotation.x = 0.5;
@@ -601,10 +674,11 @@ export const Player: React.FC = () => {
       enabledRotations={[false, false, false]}
       name="player"
       position={[0, 4, 0]}
-      type={phase === 'MENU' ? 'fixed' : 'dynamic'}
+      type={isGodMode ? 'kinematicPosition' : (phase === 'MENU' ? 'fixed' : 'dynamic')}
       friction={0.6}
       restitution={0.1}
       onCollisionEnter={(event) => {
+        if (isGodMode) return;
         const other = event.other.rigidBodyObject;
         if (other && (other.name === 'rotating-arm' || other.name === 'windmill-blade')) {
           const playerPos = rigidBodyRef.current!.translation();

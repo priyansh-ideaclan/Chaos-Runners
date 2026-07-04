@@ -75,6 +75,7 @@ export const HUD: React.FC = () => {
     devLandmarkIndex,
     devLandmarkDistance,
     devShowDetails,
+    isGodMode,
     isNitroActive,
     nitroCooldown,
   } = useGameStore();
@@ -112,6 +113,11 @@ export const HUD: React.FC = () => {
         useGameStore.getState().toggleDebugCheckpoints();
       } else if (e.key === 'F9') {
         useGameStore.getState().toggleDevShowDetails();
+      } else if (e.key === 'F10') {
+        const isDevMode = (import.meta as any).env?.DEV || process.env.NODE_ENV === 'development';
+        if (isDevMode) {
+          useGameStore.getState().toggleGodMode();
+        }
       }
     };
 
@@ -367,16 +373,37 @@ export const HUD: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', pointerEvents: 'none' }}>
 
           {/* Left: Timer + level name */}
-          <div className="glass-panel" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px', border: '2px solid rgba(255,255,255,0.1)' }}>
-            <Timer size={20} color={modeColor} />
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: modeColor, letterSpacing: '0.05em' }}>
-                {LEVEL_NAMES[currentLevelId] || 'Chao Stage'}
-              </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, fontFamily: 'monospace', color: 'white', lineHeight: 1.1 }}>
-                {displayTimerText}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="glass-panel" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px', border: '2px solid rgba(255,255,255,0.1)' }}>
+              <Timer size={20} color={modeColor} />
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: modeColor, letterSpacing: '0.05em' }}>
+                  {LEVEL_NAMES[currentLevelId] || 'Chao Stage'}
+                </div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, fontFamily: 'monospace', color: 'white', lineHeight: 1.1 }}>
+                  {displayTimerText}
+                </div>
               </div>
             </div>
+
+            {isGodMode && (
+              <div className="pulse-animation" style={{
+                padding: '8px 16px',
+                background: 'linear-gradient(90deg, #ff007f, #ffd60a)',
+                color: '#ffffff',
+                fontWeight: 900,
+                fontSize: '0.86rem',
+                borderRadius: '8px',
+                boxShadow: '0 0 14px rgba(255, 0, 127, 0.45)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                letterSpacing: '1px',
+                border: '1.5px solid rgba(255,255,255,0.25)',
+              }}>
+                <span style={{ fontSize: '1rem' }}>🛠</span> GOD MODE ENABLED
+              </div>
+            )}
           </div>
 
           {/* Center: Mode-specific objective bar */}
@@ -692,6 +719,26 @@ export const HUD: React.FC = () => {
           >
             <Eye size={14} /> {showDebugCheckpoints ? 'Hide Dev Landmarks' : 'Show Dev Landmarks (O)'}
           </button>
+
+          {((import.meta as any).env?.DEV || process.env.NODE_ENV === 'development') && (
+            <button 
+              className="ui-interactive btn-secondary" 
+              style={{ 
+                pointerEvents: 'all', 
+                padding: '10px 16px', 
+                fontSize: '0.9rem', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                fontWeight: 800,
+                borderColor: isGodMode ? '#ff007f' : 'var(--glass-border)',
+                background: isGodMode ? 'rgba(255, 0, 127, 0.15)' : 'var(--glass-bg)'
+              }} 
+              onClick={() => useGameStore.getState().toggleGodMode()}
+            >
+              <Sparkles size={14} /> {isGodMode ? 'Disable God Mode' : 'Enable God Mode (F10)'}
+            </button>
+          )}
 
           <button className="ui-interactive btn-secondary" style={{ pointerEvents: 'all', padding: '10px 16px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800 }} onClick={resetTournament}>
             <Home size={14} /> Leave Match
