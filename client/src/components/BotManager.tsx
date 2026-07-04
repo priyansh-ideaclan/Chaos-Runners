@@ -16,13 +16,21 @@ export const BotManager: React.FC = () => {
         spawnHeight = 9.8;
       } else if (currentLevelId === 'logic_1') {
         spawnHeight = 2.1;
+      } else if (currentLevelId === 'survival_2') {
+        spawnHeight = 8.5;
       }
 
-      // Distribute bots naturally across the starting grid (avoiding the center at Z=0 for the player)
-      const layoutX = [-3.5, 3.5, -2.0, 2.0, -4.0, 4.0, -1.0, 1.0, -2.5, 2.5, 0.0];
-      const layoutZ = [0.0, 0.0, -1.6, -1.6, -3.2, -3.2, -4.8, -4.8, -6.4, -6.4, -8.0];
-      const idx = i % layoutX.length;
-      const spawnPos: [number, number, number] = [layoutX[idx], spawnHeight, layoutZ[idx]];
+      let spawnPos: [number, number, number];
+      if (currentLevelId === 'survival_2') {
+        const angle = ((i + 1) * Math.PI * 2) / 6;
+        const radius = 2.4;
+        spawnPos = [Math.sin(angle) * radius, spawnHeight, Math.cos(angle) * radius];
+      } else {
+        const layoutX = [-3.5, 3.5, -2.0, 2.0, -4.0, 4.0, -1.0, 1.0, -2.5, 2.5, 0.0];
+        const layoutZ = [0.0, 0.0, -1.6, -1.6, -3.2, -3.2, -4.8, -4.8, -6.4, -6.4, -8.0];
+        const idx = i % layoutX.length;
+        spawnPos = [layoutX[idx], spawnHeight, layoutZ[idx]];
+      }
 
       return {
         ...bot,

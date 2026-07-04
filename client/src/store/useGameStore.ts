@@ -139,7 +139,7 @@ const SPAWN_POINTS: Record<string, [number, number, number]> = {
   'race_1': [0, 0.4, 0],
   'survival_1': [0, 1.2, 0],
   'logic_1': [0, 0.4, -5.8],
-  'survival_2': [0, 8.5, 0],
+  'survival_2': [0, 8.5, 2.4],
 };
 
 const getStoredNumber = (key: string, fallback: number): number => {
@@ -509,9 +509,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
     const nextRound = currentRound + 1;
 
-    // Filter surviving bots to only those who qualified this round
-    const nextBots = activeBots.filter((bot) => winnersList.includes(bot.id));
-
     // Look up the fixed round configuration (rounds are 1-indexed; array is 0-indexed)
     const roundConfig = ROUND_PROGRESSION[nextRound - 1];
 
@@ -519,6 +516,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!roundConfig) {
       set({ phase: 'VICTORY', wins: get().wins + 1 });
       return;
+    }
+
+    // Filter surviving bots to only those who qualified this round
+    let nextBots = activeBots.filter((bot) => winnersList.includes(bot.id));
+    if (roundConfig.levelId === 'survival_2' && nextBots.length > 5) {
+      nextBots = nextBots.slice(0, 5);
     }
 
     const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
@@ -710,12 +713,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     const nextSeed = Math.random();
     const spawnPoint = SPAWN_POINTS[levelId] || [0, 4, 0];
 
-    // Seed 9 bots
-    const botNames = generateBotNames(9, get().playerName);
+    // Seed bots (5 bots for Level 4, otherwise 9 bots)
+    const numBots = levelId === 'survival_2' ? 5 : 9;
+    const botNames = generateBotNames(numBots, get().playerName);
     const botColors = ['#ffd60a', '#39ff14', '#00e5ff', '#ff6700', '#bd00ff', '#ff0055', '#00ffc4', '#ff7da7', '#a8ff00'];
     const accessories = ['none', 'crown', 'party', 'glasses'];
     const difficulties: ('EASY' | 'MEDIUM' | 'HARD')[] = ['EASY', 'MEDIUM', 'HARD', 'EASY', 'MEDIUM', 'MEDIUM', 'EASY', 'MEDIUM', 'HARD'];
-    const seededBots = Array.from({ length: 9 }, (_, i) => ({
+    const seededBots = Array.from({ length: numBots }, (_, i) => ({
       id: `bot_${i}`,
       name: botNames[i] || `Runner_${i}`,
       color: botColors[i % botColors.length],

@@ -363,11 +363,27 @@ export const CameraController: React.FC = () => {
       (camera as THREE.PerspectiveCamera).updateProjectionMatrix();
     }
 
+    // Dynamic camera height, pitch, and distance parameters for Hex-A-Terrestrial
+    let customFollowDistance = FOLLOW_DISTANCE;
+    let pitchOffset = 0;
+    let heightOffset = 0;
+
+    if (currentLevelId === 'survival_2') {
+      // If player drops below top tier, pull camera closer and tilt it steeper to look down through upper shafts
+      if (playerPos.y < 5.5) {
+        const dropFactor = Math.max(0, Math.min(1.0, (5.5 - playerPos.y) / 6.5));
+        customFollowDistance = FOLLOW_DISTANCE - dropFactor * 1.6; // camera gets closer (down to 4.4m)
+        pitchOffset = -dropFactor * 0.45; // pitch down steeper (by ~25 deg)
+        heightOffset = dropFactor * 0.9; // raise look down vantage point
+      }
+    }
+
     const targetCamPos  = computeFollowCamPos(
       playerPos,
       yaw.current,
-      pitch.current,
-      (nitroEffectVal.current * 1.5) + (isPlayerSliding ? 2.5 : 0.0)
+      pitch.current + pitchOffset,
+      (nitroEffectVal.current * 1.5) + (isPlayerSliding ? 2.5 : 0.0) + (customFollowDistance - FOLLOW_DISTANCE),
+      FOLLOW_HEIGHT + heightOffset
     );
     const targetLookAt  = playerPos.clone().add(new THREE.Vector3(0, 0.5, 0));
 
@@ -391,6 +407,57 @@ export const CameraController: React.FC = () => {
       camera.position.y += (Math.random() - 0.5) * shake;
       camera.position.z += (Math.random() - 0.5) * shake;
     }
+
+    // Dynamic camera occlusion detection (fades out tiles between camera and player)
+    if (currentLevelId === 'survival_2') {
+      const levelGroup = state.scene.getObjectByName('level4_hex');
+      const hexMeshes: THREE.Mesh[] = [];
+      if (levelGroup) {
+        levelGroup.traverse((child) => {
+          if (child.name === 'hextile' && child instanceof THREE.Mesh) {
+            hexMeshes.push(child);
+          }
+        });
+      }
+
+      const camToPlayer = new THREE.Vector3().subVectors(playerPos, camera.position);
+      const distanceToPlayer = camToPlayer.length();
+      const rayDirection = camToPlayer.clone().normalize();
+
+      // Raycast from camera to player
+      const raycaster = new THREE.Raycaster(camera.position, rayDirection, 0.1, distanceToPlayer);
+      const intersects = raycaster.intersectObjects(hexMeshes);
+
+      const intersectedUUIDs = new Set<string>();
+      intersects.forEach((hit) => {
+        let obj: THREE.Object3D | null = hit.object;
+        while (obj && obj.name !== 'hextile') {
+          obj = obj.parent;
+        }
+        if (obj) {
+          intersectedUUIDs.add(obj.uuid);
+        }
+      });
+
+      // Update materials opacities smoothly
+      hexMeshes.forEach((mesh) => {
+        const mat = mesh.material as THREE.MeshStandardMaterial;
+        if (mat) {
+          if (intersectedUUIDs.has(mesh.uuid)) {
+            mat.transparent = true;
+            mat.opacity = THREE.MathUtils.lerp(mat.opacity, 0.20, delta * 12.0);
+          } else {
+            if (mat.opacity < 1.0) {
+              mat.opacity = THREE.MathUtils.lerp(mat.opacity, 1.0, delta * 6.0);
+              if (mat.opacity > 0.98) {
+                mat.opacity = 1.0;
+                mat.transparent = false;
+              }
+            }
+          }
+        }
+      });
+    }
   });
 
   return null;
@@ -403,11 +470,12 @@ function computeFollowCamPos(
   playerPos: THREE.Vector3,
   yaw: number,
   pitch: number,
-  extraDist: number = 0
+  extraDist: number = 0,
+  customHeight: number = FOLLOW_HEIGHT
 ): THREE.Vector3 {
   const dist = FOLLOW_DISTANCE + extraDist;
   const x = dist * Math.cos(pitch) * Math.sin(yaw);
-  const y = FOLLOW_HEIGHT   + dist * Math.sin(-pitch);
+  const y = customHeight + dist * Math.sin(-pitch);
   const z = dist * Math.cos(pitch) * Math.cos(yaw);
   return playerPos.clone().add(new THREE.Vector3(x, y, z));
 }

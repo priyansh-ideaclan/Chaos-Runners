@@ -14,7 +14,7 @@ interface HexTileProps {
 }
 
 const HexTile: React.FC<HexTileProps> = ({ id, position, color }) => {
-  const [status, setStatus] = useState<'active' | 'warning' | 'falling' | 'gone'>('active');
+  const [status, setStatus] = useState<'active' | 'warning' | 'falling' | 'regenerating' | 'rising'>('active');
   const rigidBodyRef = useRef<RapierRigidBody>(null);
   const currentY = useRef(position[1]);
   const fallSpeed = useRef(0);
@@ -49,6 +49,18 @@ const HexTile: React.FC<HexTileProps> = ({ id, position, color }) => {
     return undefined;
   }, [status, position]);
 
+  // Delayed regeneration timer (waits ~10.0 seconds before starting rising animation)
+  useEffect(() => {
+    if (status === 'regenerating') {
+      const delay = 8500 + Math.random() * 1500; // 8.5s - 10s
+      const timer = setTimeout(() => {
+        setStatus('rising');
+      }, delay);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [status]);
+
   useFrame((state, delta) => {
     // If stepped on during countdown/intro, trigger warning once phase becomes PLAYING
     if (hasBeenSteppedOn.current && status === 'active') {
@@ -77,56 +89,101 @@ const HexTile: React.FC<HexTileProps> = ({ id, position, color }) => {
       }
 
       if (currentY.current < -6.0) {
-        setStatus('gone');
+        setStatus('regenerating');
+      }
+    } else if (status === 'regenerating') {
+      // Keep collider positioned far below map
+      if (rigidBodyRef.current) {
+        rigidBodyRef.current.setNextKinematicTranslation(
+          new THREE.Vector3(position[0], -15.0, position[2])
+        );
+      }
+    } else if (status === 'rising') {
+      // Smooth rise up at 3.2m/s
+      currentY.current += delta * 3.2;
+
+      // Decelerate visual spin back to upright
+      rotX.current = THREE.MathUtils.lerp(rotX.current, 0, delta * 5.0);
+      rotY.current = THREE.MathUtils.lerp(rotY.current, 0, delta * 5.0);
+
+      if (rigidBodyRef.current) {
+        rigidBodyRef.current.setNextKinematicTranslation(
+          new THREE.Vector3(position[0], currentY.current, position[2])
+        );
+      }
+
+      if (currentY.current >= position[1]) {
+        // Reset properties to original state
+        currentY.current = position[1];
+        fallSpeed.current = 0;
+        rotX.current = 0;
+        rotY.current = 0;
+        hasBeenSteppedOn.current = false;
+        setStatus('active');
+      }
+    } else {
+      // Ensure it stays at its fixed initial position when active
+      if (rigidBodyRef.current) {
+        rigidBodyRef.current.setNextKinematicTranslation(
+          new THREE.Vector3(position[0], position[1], position[2])
+        );
       }
     }
   });
 
-  if (status === 'gone') return null;
-
   const isWarning = status === 'warning';
   const isFalling = status === 'falling';
-  const displayColor = isWarning ? '#ff3b30' : color; // Glow red on step
+  const isRegenerating = status === 'regenerating';
+  const isRising = status === 'rising';
+  
+  // Color tiles red on step warning, and a beautiful glowing cyan while rising/regenerating
+  const displayColor = isWarning ? '#ff3b30' : isRising ? '#00ffc4' : color;
 
   return (
-    <RigidBody
-      ref={rigidBodyRef}
-      type="kinematicPosition"
-      colliders={false}
-      position={position}
-      name="hextile_body"
-    >
-      {/* Visual Hex Cylinder Mesh */}
-      <mesh 
-        castShadow 
-        receiveShadow
-        rotation={[rotX.current, Math.PI / 6 + rotY.current, 0]}
-        name="hextile"
-        userData={{ id, state: status, yPos: currentY.current }}
+    <group name="hextile_container">
+      <RigidBody
+        ref={rigidBodyRef}
+        type="kinematicPosition"
+        colliders={false}
+        position={position}
+        name="hextile_body"
       >
-        <cylinderGeometry args={[0.58, 0.58, 0.22, 6]} />
-        <meshStandardMaterial 
-          color={displayColor} 
-          roughness={0.25} 
-          metalness={0.2}
-          emissive={isWarning ? '#ff3b30' : isFalling ? '#550000' : color}
-          emissiveIntensity={isWarning ? pulseIntensity.current : isFalling ? 0.4 : 0.08}
-        />
-      </mesh>
+        {/* Visual Hex Cylinder Mesh */}
+        {!isRegenerating && (
+          <mesh 
+            castShadow 
+            receiveShadow
+            rotation={[rotX.current, Math.PI / 6 + rotY.current, 0]}
+            name="hextile"
+            userData={{ id, state: status, yPos: currentY.current }}
+          >
+            <cylinderGeometry args={[0.58, 0.58, 0.22, 6]} />
+            <meshStandardMaterial 
+              color={displayColor} 
+              roughness={0.25} 
+              metalness={0.2}
+              emissive={isWarning ? '#ff3b30' : isRising ? '#00ffc4' : isFalling ? '#550000' : color}
+              emissiveIntensity={isWarning ? pulseIntensity.current : isRising ? 1.0 : isFalling ? 0.4 : 0.08}
+            />
+          </mesh>
+        )}
 
-      {/* Main physical surface cylinder collider */}
-      <CylinderCollider args={[0.11, 0.58]} />
+        {/* Main physical surface cylinder collider */}
+        {!isRegenerating && (
+          <CylinderCollider args={[0.11, 0.58]} />
+        )}
 
-      {/* Top waddle contact sensor */}
-      {!isFalling && (
-        <CylinderCollider 
-          args={[0.15, 0.55]} 
-          sensor 
-          onIntersectionEnter={handleEnter} 
-          position={[0, 0.16, 0]} 
-        />
-      )}
-    </RigidBody>
+        {/* Top waddle contact sensor (only active when status is fully reset to active) */}
+        {status === 'active' && (
+          <CylinderCollider 
+            args={[0.15, 0.55]} 
+            sensor 
+            onIntersectionEnter={handleEnter} 
+            position={[0, 0.16, 0]} 
+          />
+        )}
+      </RigidBody>
+    </group>
   );
 };
 
@@ -136,6 +193,7 @@ export const Level4: React.FC = () => {
   const config = getThemeConfig(theme);
   const eliminateRacer = useGameStore((state) => state.eliminateRacer);
   const phase = useGameStore((state) => state.phase);
+  const levelSeed = useGameStore((state) => state.levelSeed);
 
   // Generate 3 tiers of hexagonal tiles
   const tiersData = useMemo(() => {
@@ -178,7 +236,7 @@ export const Level4: React.FC = () => {
   };
 
   return (
-    <group name="level4_hex">
+    <group name="level4_hex" key={levelSeed}>
 
       {/* ── 1. Tiers of Hex Tiles ── */}
       {tiersData.map((tier, tIdx) => {
