@@ -187,6 +187,13 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
   const botPath = useRef<[number, number, number][]>(LEVEL_1_MIDDLE_PATH);
   const windmillMistakeFlag = useRef<boolean | null>(null);
 
+  // Personality & reaction time overhaul
+  const reactionTimeRef = useRef(0);
+  const roundElapsedRef = useRef(0);
+  
+  type Personality = 'AGGRESSIVE' | 'BALANCED' | 'RISKY' | 'SAFE';
+  const personalityRef = useRef<Personality>('BALANCED');
+
   useEffect(() => {
     if (phase === 'PLAYING' || phase === 'ROUND_INTRO') {
       setIsQualified(false);
@@ -202,6 +209,21 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       nitroCooldown.current = 0;
       nitroDuration.current = 0;
       wasNitroActiveRef.current = false;
+
+      // Assign dynamic reaction times (0 - 0.5s)
+      reactionTimeRef.current = Math.random() * 0.48;
+      roundElapsedRef.current = 0;
+
+      // Determine personality based on ID character code sum
+      const botIdx = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const personalities: Personality[] = ['AGGRESSIVE', 'BALANCED', 'RISKY', 'SAFE'];
+      personalityRef.current = personalities[botIdx % personalities.length];
+
+      // Tune speeds based on difficulty and personality
+      let baseSpeed = difficulty === 'EASY' ? 3.5 : difficulty === 'MEDIUM' ? 4.2 : 4.9;
+      if (personalityRef.current === 'AGGRESSIVE') baseSpeed *= 1.06;
+      if (personalityRef.current === 'SAFE') baseSpeed *= 0.94;
+      botSpeed.current = baseSpeed;
 
       // Assign bot branching path choices based on ID
       const botIndex = parseInt(id.replace(/\D/g, '')) || 0;
@@ -462,6 +484,98 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
     } else if (currentSurface === 'speed-ramp') {
       accelerationRatio = 0.06;
       activeSpeed *= 1.8;
+    }
+
+    // 4a. Race Start Reaction Delay
+    if (phase === 'PLAYING') {
+      roundElapsedRef.current += delta;
+    }
+    if (roundElapsedRef.current < reactionTimeRef.current) {
+      activeSpeed = 0;
+    }
+
+    // 4b. Natural lane changes, drift noise, and overtaking steer correction
+    let laneChangeX = 0;
+    const time = state.clock.getElapsedTime();
+    const driftFreq = personalityRef.current === 'AGGRESSIVE' ? 2.8 : personalityRef.current === 'RISKY' ? 3.4 : 1.4;
+    const driftAmp = personalityRef.current === 'SAFE' ? 0.08 : 0.44;
+    laneChangeX += Math.sin(time * driftFreq + (id.charCodeAt(0) % 10)) * driftAmp;
+
+    // Proximity overtaking logic
+    let overtakingSteerX = 0;
+    const otherRacers: THREE.Object3D[] = [];
+    state.scene.traverse((child) => {
+      if (child.name === 'player-visual' || (child.name === 'bot-visual' && child !== visualGroupRef.current)) {
+        otherRacers.push(child);
+      }
+    });
+    otherRacers.forEach((racer) => {
+      const rPos = new THREE.Vector3();
+      racer.getWorldPosition(rPos);
+      const dz = rPos.z - pos.z;
+      const dx = rPos.x - pos.x;
+      // If another racer is directly in front within 2.5 meters
+      if (dz > 0.1 && dz < 2.5 && Math.abs(dx) < 0.82) {
+        // Steer away laterally to overtake
+        overtakingSteerX = dx >= 0 ? -1.8 : 1.8;
+      }
+    });
+
+    // 4c. Timing & dodging spinning hammers
+    let isHeadingIntoHammer = false;
+    let shouldJumpForHammer = false;
+    const hammers: THREE.Object3D[] = [];
+    state.scene.traverse((child) => {
+      if (child.name === 'spinning-hammer') {
+        hammers.push(child);
+      }
+    });
+    hammers.forEach((hammer) => {
+      const hPos = new THREE.Vector3();
+      hammer.getWorldPosition(hPos);
+      const hDist = new THREE.Vector3(pos.x, pos.y, pos.z).distanceTo(hPos);
+      if (hDist < 2.8) {
+        let mountH = 1.0;
+        if (hammer.userData && typeof hammer.userData.mountingHeight === 'number') {
+          mountH = hammer.userData.mountingHeight;
+        }
+
+        const angleToBot = Math.atan2(pos.x - hPos.x, pos.z - hPos.z);
+        const armAngle = hammer.rotation.y;
+        let diff = Math.abs((armAngle - angleToBot) % (Math.PI * 2));
+        if (diff > Math.PI) diff = Math.PI * 2 - diff;
+
+        // If arm is sweeping towards bot
+        if (diff < 0.65) {
+          if (mountH > 1.45) {
+            // High arm: safe to run under! Do nothing
+          } else if (mountH >= 0.9 && mountH <= 1.35) {
+            // Jumpable: attempt to time a leap!
+            if (isGroundedRef.current && jumpCooldown.current <= 0) {
+              const jumpChance = personalityRef.current === 'RISKY' ? 0.95 : personalityRef.current === 'AGGRESSIVE' ? 0.82 : 0.62;
+              if (Math.random() < jumpChance) {
+                shouldJumpForHammer = true;
+              }
+            }
+          } else {
+            // Body level: stop and wait (Safe/Balanced) or boost through (Aggressive/Risky)
+            if (personalityRef.current === 'SAFE' || personalityRef.current === 'BALANCED') {
+              isHeadingIntoHammer = true;
+            } else {
+              // Trigger nitro boost past it!
+              if (nitroCooldown.current <= 0 && !isNitroActive.current) {
+                isNitroActive.current = true;
+                nitroDuration.current = 1.0;
+                nitroCooldown.current = 5.0;
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (isHeadingIntoHammer) {
+      activeSpeed = 0;
     }
 
     // Natural hesitation slowdown before gap jumps for Easy/Medium bots
@@ -881,9 +995,13 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       }
     }
 
+    if (shouldJumpForHammer) {
+      shouldJump = true;
+    }
+
     // Apply linear velocities
     const vel = rb.linvel();
-    let moveTargetX = steerDir.x * activeSpeed;
+    let moveTargetX = (steerDir.x + laneChangeX + overtakingSteerX) * activeSpeed;
     let moveTargetZ = steerDir.z * activeSpeed;
     let moveTargetY = vel.y;
 

@@ -186,7 +186,7 @@ export const HUD: React.FC = () => {
 
   // Round outcome auto-transition
   useEffect(() => {
-    if (phase !== 'ROUND_OUTCOME') return;
+    if (phase !== 'ROUND_OUTCOME' && phase !== 'QUALIFIED') return;
     setOutcomeCountdown(5);
     const interval = setInterval(() => {
       setOutcomeCountdown((prev) => {
@@ -513,51 +513,107 @@ export const HUD: React.FC = () => {
         </div>
       )}
 
-      {/* ── ROUND OUTCOME (QUALIFIED) ─────────────────────────────────────── */}
-      {phase === 'ROUND_OUTCOME' && (
-        <div className="ui-interactive glass-panel pulse-animation" style={{
-          margin: 'auto', maxWidth: '500px', width: '92%',
-          padding: '36px', textAlign: 'center', boxSizing: 'border-box',
-          border: `2.5px solid ${modeColor}`, boxShadow: `0 0 25px ${modeColor}44`,
+      {/* ── POLISHED ROUND OUTCOME & CELEBRATION (QUALIFIED) ────────────────── */}
+      {((phase === 'ROUND_OUTCOME' || phase === 'QUALIFIED') && playerQualified) && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+          background: 'rgba(0, 0, 0, 0.72)',
+          backdropFilter: 'blur(10px)',
+          zIndex: 9999,
+          boxSizing: 'border-box'
         }}>
-          <div style={{ display: 'inline-flex', background: `${modeColor}1a`, padding: '14px', borderRadius: '50%', marginBottom: '16px', border: `1px solid ${modeColor}` }}>
-            <Trophy size={36} color="#ffd60a" />
+          {/* Confetti pieces container */}
+          <div style={{ position: 'absolute', width: '100%', height: '100%', pointerEvents: 'none', overflow: 'hidden', zIndex: 1 }}>
+            {Array.from({ length: 48 }).map((_, i) => {
+              const left = Math.random() * 100;
+              const delay = Math.random() * 2.5;
+              const duration = 2.0 + Math.random() * 2.5;
+              const size = 6 + Math.random() * 10;
+              const colorsList = ['#ff007f', '#00e5ff', '#ffd60a', '#39ff14', '#bd00ff'];
+              const color = colorsList[i % colorsList.length];
+              return (
+                <div
+                  key={i}
+                  style={{
+                    position: 'absolute',
+                    top: '-20px',
+                    left: `${left}%`,
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    background: color,
+                    borderRadius: i % 2 === 0 ? '50%' : '2px',
+                    opacity: 0.8,
+                    animation: `confetti-fall ${duration}s linear infinite`,
+                    animationDelay: `${delay}s`,
+                  }}
+                />
+              );
+            })}
           </div>
-          <h2 className="neon-text-cyan" style={{ fontSize: '2.2rem', margin: '0 0 6px 0', fontWeight: 900 }}>QUALIFIED!</h2>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem', margin: '0 0 16px 0' }}>
-            Congratulations, <strong>{playerName || 'Racer'}</strong>! You passed Round {currentRound}.
-          </p>
 
-          <div style={{ display: 'flex', gap: '16px', margin: '0 0 20px 0', textAlign: 'left', maxHeight: '160px', overflowY: 'auto', border: '1.5px solid rgba(255,255,255,0.06)', padding: '12px', borderRadius: '10px', background: 'rgba(0,0,0,0.3)' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--secondary)', textTransform: 'uppercase', marginBottom: '6px', borderBottom: '1px solid rgba(0,229,255,0.15)', paddingBottom: '3px' }}>Qualified ({qualifiedRacers.length})</div>
-              {qualifiedRacers.map((r, i) => (
-                <div key={r.id} style={{ fontSize: '0.78rem', color: '#fff', margin: '4px 0', display: 'flex', justifyContent: 'space-between', fontWeight: r.id === 'player' ? 800 : 500 }}>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px' }}>{i + 1}. {r.name}</span>
-                  <span style={{ color: 'var(--secondary)', fontWeight: 800 }}>✓</span>
-                </div>
-              ))}
+          <div className="ui-interactive glass-panel pulse-animation" style={{
+            maxWidth: '520px', width: '92%',
+            padding: '40px', textAlign: 'center', boxSizing: 'border-box',
+            border: `3px solid var(--secondary)`, 
+            boxShadow: `0 0 35px var(--secondary-glow)`,
+            position: 'relative',
+            zIndex: 10
+          }}>
+            <div style={{ display: 'inline-flex', background: 'rgba(0, 229, 255, 0.15)', padding: '16px', borderRadius: '50%', marginBottom: '20px', border: '2px solid var(--secondary)' }}>
+              <Trophy size={48} color="#ffd60a" />
             </div>
-            <div style={{ flex: 1, borderLeft: '1.5px solid rgba(255,255,255,0.06)', paddingLeft: '12px' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '6px', borderBottom: '1px solid rgba(255,0,85,0.15)', paddingBottom: '3px' }}>Eliminated ({eliminatedRacers.length})</div>
-              {eliminatedRacers.map((r) => (
-                <div key={r.id} style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)', margin: '4px 0', display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px' }}>{r.name}</span>
-                  <span style={{ color: 'var(--primary)', fontWeight: 800 }}>✗</span>
-                </div>
-              ))}
+
+            <h1 className="neon-text-cyan" style={{ fontSize: '2.5rem', margin: '0 0 8px 0', fontWeight: 950, textTransform: 'uppercase' }}>
+              🎉 Congratulations!
+            </h1>
+            <h2 style={{ fontSize: '1.7rem', color: '#fff', margin: '0 0 24px 0', fontWeight: 800 }}>
+              You Qualified!
+            </h2>
+
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.45)',
+              border: '1.5px solid rgba(255,255,255,0.08)',
+              borderRadius: '12px',
+              padding: '16px 28px',
+              display: 'inline-block',
+              margin: '0 auto 24px auto',
+              boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.5)'
+            }}>
+              <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', fontWeight: 800, letterSpacing: '0.05em' }}>FINISHING POSITION</div>
+              <div style={{ fontSize: '2.6rem', color: '#ffd60a', fontWeight: 900, textShadow: '0 0 12px rgba(255,214,10,0.5)', marginTop: '4px' }}>
+                {(() => {
+                  const place = winnersList.indexOf('player') + 1;
+                  if (place === 0) return '1st Place'; // fallback
+                  const lastDigit = place % 10;
+                  const lastTwoDigits = place % 100;
+                  if (lastTwoDigits >= 11 && lastTwoDigits <= 13) return `${place}th Place`;
+                  if (lastDigit === 1) return `${place}st Place`;
+                  if (lastDigit === 2) return `${place}nd Place`;
+                  if (lastDigit === 3) return `${place}rd Place`;
+                  return `${place}th Place`;
+                })()}
+              </div>
             </div>
-          </div>
 
-          <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', fontWeight: 700, marginBottom: '12px' }}>
-            {currentRound < 5
-              ? <>Next Round starting in <span style={{ color: modeColor, fontWeight: 900, fontSize: '1rem' }}>{outcomeCountdown}</span>s...</>
-              : 'Tournament Complete!'}
-          </div>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.98rem', margin: '0 0 12px 0', fontWeight: 700 }}>
+              Moving to the Next Round...
+            </p>
 
-          <button className="btn-primary" onClick={advanceToNextRound} style={{ width: '100%', justifyContent: 'center', padding: '10px', fontSize: '0.95rem' }}>
-            {currentRound < 5 ? 'Next Round →' : 'See Results →'}
-          </button>
+            {/* Progress bar countdown */}
+            <div style={{
+              width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden', marginBottom: '28px'
+            }}>
+              <div style={{
+                height: '100%', background: 'var(--secondary)', width: `${(outcomeCountdown / 5) * 100}%`,
+                transition: 'width 1s linear'
+              }} />
+            </div>
+
+            <button className="btn-primary" onClick={advanceToNextRound} style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '1rem', fontWeight: 800 }}>
+              {currentRound < 5 ? 'Next Round →' : 'See Results →'}
+            </button>
+          </div>
         </div>
       )}
 

@@ -1696,6 +1696,7 @@ export const SpinningHammer: React.FC<SpinningHammerProps> = ({
         colliders={false}
         name="spinning-hammer"
         onCollisionEnter={handleHit}
+        userData={{ mountingHeight }}
       >
         {/* Arm bar collider + mesh */}
         <CuboidCollider args={[armHalf, 0.16, 0.16]} position={[0, mountingHeight, 0]} />

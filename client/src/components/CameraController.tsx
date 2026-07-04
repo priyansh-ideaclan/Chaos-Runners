@@ -182,23 +182,8 @@ export const CameraController: React.FC = () => {
 
     const playerQualified = useGameStore.getState().playerQualified;
 
-    // After qualifying, spectate the leading bot
+    // Keep camera targeted on player mesh throughout finish celebration
     let targetMesh = playerMesh;
-    if (playerQualified) {
-      let closest: THREE.Object3D | null = null;
-      let closestZ = -Infinity;
-      state.scene.traverse((child) => {
-        if (child.name === 'bot-visual') {
-          const wp = new THREE.Vector3();
-          child.getWorldPosition(wp);
-          if (wp.z > closestZ) {
-            closestZ = wp.z;
-            closest = child;
-          }
-        }
-      });
-      if (closest) targetMesh = closest;
-    }
 
     const playerPos = new THREE.Vector3();
     targetMesh.getWorldPosition(playerPos);

@@ -471,7 +471,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   }),
 
   advanceToNextRound: () => {
-    const { currentRound, winnersList, activeBots } = get();
+    const { currentRound, winnersList, activeBots, tournamentActive } = get();
+    if (!tournamentActive) {
+      set({ phase: 'MENU' });
+      return;
+    }
     const nextRound = currentRound + 1;
 
     // Filter surviving bots to only those who qualified this round

@@ -18,17 +18,11 @@ export const BotManager: React.FC = () => {
         spawnHeight = 2.1;
       }
 
-      // Distribute bots in a grid behind and next to the player centered around X = 0
-      let spawnPos: [number, number, number] = [0, spawnHeight, 0];
-      if (i === 0) spawnPos = [-1.5, spawnHeight, 0];
-      else if (i === 1) spawnPos = [1.5, spawnHeight, 0];
-      else if (i === 2) spawnPos = [-1.8, spawnHeight, -1.5];
-      else if (i === 3) spawnPos = [-0.6, spawnHeight, -1.5];
-      else if (i === 4) spawnPos = [0.6, spawnHeight, -1.5];
-      else if (i === 5) spawnPos = [1.8, spawnHeight, -1.5];
-      else if (i === 6) spawnPos = [-1.2, spawnHeight, -3.0];
-      else if (i === 7) spawnPos = [0.0, spawnHeight, -3.0];
-      else if (i === 8) spawnPos = [1.2, spawnHeight, -3.0];
+      // Distribute bots naturally across the starting grid (avoiding the center at Z=0 for the player)
+      const layoutX = [-3.5, 3.5, -2.0, 2.0, -4.0, 4.0, -1.0, 1.0, -2.5, 2.5, 0.0];
+      const layoutZ = [0.0, 0.0, -1.6, -1.6, -3.2, -3.2, -4.8, -4.8, -6.4, -6.4, -8.0];
+      const idx = i % layoutX.length;
+      const spawnPos: [number, number, number] = [layoutX[idx], spawnHeight, layoutZ[idx]];
 
       return {
         ...bot,

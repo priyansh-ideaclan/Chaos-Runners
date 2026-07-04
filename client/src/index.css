@@ -278,3 +278,13 @@ body, html {
 .now-playing-vinyl-spin.active-spin {
   animation-play-state: running;
 }
+
+/* Confetti falling celebration keyframes */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-20px) rotate(0deg);
+  }
+  100% {
+    transform: translateY(105vh) rotate(720deg);
+  }
+}

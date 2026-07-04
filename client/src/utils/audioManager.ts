@@ -525,6 +525,34 @@ class AudioManager {
 
     osc.start(time);
     osc.stop(time + 0.62);
+
+    // Dynamic chiptune-style crowd cheer / applause synthesis
+    try {
+      const cheerBuffer = this.createNoiseBuffer(3.8);
+      const noiseSource = this.ctx.createBufferSource();
+      noiseSource.buffer = cheerBuffer;
+
+      const cheerFilter = this.ctx.createBiquadFilter();
+      cheerFilter.type = 'bandpass';
+      cheerFilter.frequency.setValueAtTime(1000, time);
+      cheerFilter.frequency.exponentialRampToValueAtTime(1400, time + 1.2);
+      cheerFilter.frequency.exponentialRampToValueAtTime(900, time + 3.5);
+      cheerFilter.Q.setValueAtTime(1.2, time);
+
+      const cheerGainNode = this.ctx.createGain();
+      cheerGainNode.gain.setValueAtTime(0.001, time);
+      cheerGainNode.gain.linearRampToValueAtTime(0.12, time + 0.4);
+      cheerGainNode.gain.exponentialRampToValueAtTime(0.001, time + 3.7);
+
+      noiseSource.connect(cheerFilter);
+      cheerFilter.connect(cheerGainNode);
+      cheerGainNode.connect(this.sfxGain);
+
+      noiseSource.start(time);
+      noiseSource.stop(time + 3.8);
+    } catch (e) {
+      console.warn("Failed to synthesize crowd cheer:", e);
+    }
   }
 
   public playDefeat() {
