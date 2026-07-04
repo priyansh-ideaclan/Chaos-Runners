@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { Timer, Trophy, RotateCcw, Home, HelpCircle, Volume2, VolumeX, Sparkles, Shield, Zap, Star, Brain, Target, Users, Crown, Music, SkipBack, SkipForward, Play, Pause, Eye } from 'lucide-react';
+import { Timer, Trophy, RotateCcw, Home, HelpCircle, Volume2, VolumeX, Sparkles, Shield, Zap, Star, Brain, Target, Users, UserX, Crown, Music, SkipBack, SkipForward, Play, Pause, Eye } from 'lucide-react';
 import { RaceLeaderboard } from './RaceLeaderboard';
 import { audioManager } from '../utils/audioManager';
 import { musicManager } from '../utils/musicManager';
@@ -78,6 +78,7 @@ export const HUD: React.FC = () => {
     isGodMode,
     isNitroActive,
     nitroCooldown,
+    botsEnabled,
   } = useGameStore();
   const {
     playlist,
@@ -739,6 +740,26 @@ export const HUD: React.FC = () => {
               <Sparkles size={14} /> {isGodMode ? 'Disable God Mode' : 'Enable God Mode (F10)'}
             </button>
           )}
+
+          {/* Bots Toggle — always visible in the dev toolbar */}
+          <button
+            className="ui-interactive btn-secondary"
+            style={{
+              pointerEvents: 'all',
+              padding: '10px 16px',
+              fontSize: '0.9rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: 800,
+              borderColor: botsEnabled ? 'var(--glass-border)' : '#ff6b00',
+              background: botsEnabled ? 'var(--glass-bg)' : 'rgba(255, 107, 0, 0.15)',
+            }}
+            onClick={() => useGameStore.getState().toggleBots()}
+          >
+            {botsEnabled ? <Users size={14} /> : <UserX size={14} />}
+            {botsEnabled ? 'Disable Bots' : 'Enable Bots'}
+          </button>
 
           <button className="ui-interactive btn-secondary" style={{ pointerEvents: 'all', padding: '10px 16px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800 }} onClick={resetTournament}>
             <Home size={14} /> Leave Match

@@ -126,6 +126,8 @@ interface GameState {
   selectLevel: (index: number) => void;
   unlockNextLevel: () => void;
   toggleDebugCheckpoints: () => void;
+  botsEnabled: boolean;
+  toggleBots: () => void;
   triggerSplash: (position: [number, number, number], color?: string) => void;
 }
 
@@ -268,6 +270,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   weatherMuted: getStoredBoolean('chaorunners_mute_weather', false),
   uiMuted: getStoredBoolean('chaorunners_mute_ui', false),
   showDebugCheckpoints: false,
+  botsEnabled: getStoredBoolean('chaorunners_bots_enabled', true),
   devLandmarkIndex: -1,
   devLandmarkDistance: 0,
   devShowDetails: true,
@@ -289,6 +292,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ playerName: trimmed });
   },
   toggleDebugCheckpoints: () => set((state) => ({ showDebugCheckpoints: !state.showDebugCheckpoints })),
+  toggleBots: () => set((state) => {
+    const next = !state.botsEnabled;
+    localStorage.setItem('chaorunners_bots_enabled', String(next));
+    return { botsEnabled: next };
+  }),
   triggerSplash: (position, color = '#39ff14') => {
     const id = Math.random().toString();
     set((state) => ({ splashes: [...state.splashes, { id, position, color }] }));

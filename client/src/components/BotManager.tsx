@@ -6,6 +6,7 @@ export const BotManager: React.FC = () => {
   const phase = useGameStore((state) => state.phase);
   const currentLevelId = useGameStore((state) => state.currentLevelId);
   const activeBots = useGameStore((state) => state.activeBots);
+  const botsEnabled = useGameStore((state) => state.botsEnabled);
 
   const botsList = useMemo(() => {
     return activeBots.map((bot, i) => {
@@ -36,6 +37,8 @@ export const BotManager: React.FC = () => {
     });
   }, [currentLevelId, phase, activeBots]);
 
+  // Bots are toggled off — don't render any bot physics/meshes
+  if (!botsEnabled) return null;
   if (phase === 'MENU') return null;
 
   return (
