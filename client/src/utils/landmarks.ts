@@ -37,11 +37,9 @@ export const LEVEL_1_LANDMARKS: LandmarkConfig[] = [
   { pos: [0.0, 7.8, 81.0], section: 'Middle Rainbow Slide' },      // LM 31
   { pos: [5.0, 7.8, 81.0], section: 'Right Ice Slide' },           // LM 32
   { pos: [0.0, 4.5, 88.0], section: 'Slide Landing Sweeper' },    // LM 33
-  { pos: [-8.5, 4.5, 88.0], section: 'Left Mud Trap' },            // LM 34
-  { pos: [8.5, 4.5, 88.0], section: 'Right Mud Trap' },            // LM 35
-  { pos: [3.5, 4.5, 94.0], section: 'Swinging Pendulum Hammer' },  // LM 36
-  { pos: [0.0, 4.5, 100.0], section: 'Checkpoint 4' },            // LM 37
-  { pos: [0.0, 4.5, 107.5], section: 'Sprint Road Center' },       // LM 38
-  { pos: [0.0, 4.5, 114.5], section: 'Cannon Obstacle Section' },  // LM 39
-  { pos: [0.0, 4.5, 119.0], section: 'Finish Trigger Sensor' }     // LM 40
+  { pos: [3.5, 4.5, 94.0], section: 'Swinging Pendulum Hammer' },  // LM 34
+  { pos: [0.0, 4.5, 100.0], section: 'Checkpoint 4' },            // LM 35
+  { pos: [0.0, 4.5, 107.5], section: 'Sprint Road Center' },       // LM 36
+  { pos: [0.0, 4.5, 114.5], section: 'Cannon Obstacle Section' },  // LM 37
+  { pos: [0.0, 4.5, 119.0], section: 'Finish Trigger Sensor' }     // LM 38
 ];

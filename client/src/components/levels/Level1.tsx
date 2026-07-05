@@ -282,7 +282,7 @@ export const Level1: React.FC = () => {
         length={5.0}
         width={3.2}
         thickness={0.28}
-        axis="x"
+        axis="z"
         color="#ff9500"
         pivotColor="#554433"
       />
@@ -534,10 +534,6 @@ export const Level1: React.FC = () => {
       <RotatingSweeper position={[-4.0, 4.5, 92.0]} radius={2.2} height={0.5} speed={1.8} color="#ffaa00" />
       <RotatingSweeper position={[4.0, 4.5, 92.0]} radius={2.2} height={0.5} speed={-1.8} color="#ffaa00" />
       
-      {/* Side slowing mud traps */}
-      <MudPlatform position={[-8.5, 4.1, 92.0]} size={[3.0, 0.85, 4.0]} color="#4d2f1d" />
-      <MudPlatform position={[8.5, 4.1, 92.0]} size={[3.0, 0.85, 4.0]} color="#4d2f1d" />
-
       {/* Dual swinging pendulum hammers above the slide landing path */}
       <PendulumHammer position={[-3.0, 5.2, 97.0]} length={3.0} speed={2.5} color="#ff007f" />
       <PendulumHammer position={[3.0, 5.2, 97.0]} length={3.0} speed={-2.2} color="#ff007f" />

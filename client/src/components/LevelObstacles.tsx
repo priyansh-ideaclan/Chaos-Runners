@@ -418,7 +418,9 @@ export const Seesaw: React.FC<SeesawProps> = ({
     let netTorque = 0;
 
     const scan = (obj: THREE.Object3D) => {
-      const d = obj.position.clone().sub(new THREE.Vector3(...position));
+      const charPos = new THREE.Vector3();
+      obj.getWorldPosition(charPos);
+      const d = charPos.clone().sub(new THREE.Vector3(...position));
       const onPlank = Math.abs(d.x) < halfWide + 0.5 && Math.abs(d.z) < halfLong + 0.5;
       if (!onPlank) return;
       // For axis='z', weight imbalance comes from X offset (right vs left)
@@ -427,11 +429,11 @@ export const Seesaw: React.FC<SeesawProps> = ({
       netTorque += offset;
     };
 
-    const player = state.scene.getObjectByName('player');
-    if (player) scan(player);
-    state.scene.children
-      .filter(c => c.name === 'bot')
-      .forEach(scan);
+    state.scene.traverse((child) => {
+      if (child.name === 'player' || child.name === 'bot') {
+        scan(child);
+      }
+    });
 
     // ── 2. Integrate angular velocity ──
     const targetAngVel = netTorque * STIFFNESS * delta;
@@ -2519,8 +2521,8 @@ export const CandyMountain: React.FC<CandyMountainProps> = ({ position, radius, 
         <meshStandardMaterial color="#ffb7b2" roughness={0.9} />
       </mesh>
 
-      {/* Snow cap */}
-      <mesh position={[0, height * 0.325, 0]}>
+      {/* Snow cap - scaled slightly outward to prevent Z-fighting artifacts */}
+      <mesh position={[0, height * 0.325, 0]} scale={[1.015, 1.015, 1.015]}>
         <coneGeometry args={[radius * 0.35, height * 0.35, 5, 1]} />
         <meshStandardMaterial color="#ffffff" roughness={0.8} />
       </mesh>
