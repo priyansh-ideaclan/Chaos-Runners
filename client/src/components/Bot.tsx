@@ -152,6 +152,7 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
   // Knockback states
   const knockbackTimerRef = useRef(0);
   const knockbackVelRef = useRef(new THREE.Vector3());
+  const lastObstacleHitTime = useRef(0);
 
   // Bot Nitro Boost states
   const isNitroActive = useRef(false);
@@ -324,17 +325,31 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
     // Decrement knockback timer and apply knockback velocity if active
     if (knockbackTimerRef.current > 0) {
       knockbackTimerRef.current -= delta;
-      const currentVel = rb.linvel();
-      rb.setLinvel({
-        x: knockbackVelRef.current.x,
-        y: currentVel.y,
-        z: knockbackVelRef.current.z
-      }, true);
-      
-      if (visualGroupRef.current) {
-        visualGroupRef.current.rotation.y += delta * 15; // spin when hit!
+
+      const recoveryRate = difficulty === 'EASY' ? 0.35 : difficulty === 'MEDIUM' ? 0.65 : 0.95;
+      const isNearGround = pos.y < 1.2;
+      if (isNearGround && Math.random() < recoveryRate * delta * 2.0 && jumpCountRef.current < 2) {
+        const currentVel = rb.linvel();
+        rb.setLinvel({
+          x: currentVel.x,
+          y: 6.2,
+          z: currentVel.z
+        }, true);
+        jumpCountRef.current += 1;
+        knockbackTimerRef.current = 0; // Clear knockback!
+      } else {
+        const currentVel = rb.linvel();
+        rb.setLinvel({
+          x: knockbackVelRef.current.x,
+          y: currentVel.y,
+          z: knockbackVelRef.current.z
+        }, true);
+        
+        if (visualGroupRef.current) {
+          visualGroupRef.current.rotation.y += delta * 15; // spin when hit!
+        }
+        return;
       }
-      return;
     }
 
     const progressValue = getRacerProgressValue(currentLevelId, pos);
@@ -1365,6 +1380,10 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       onCollisionEnter={(event) => {
         const other = event.other.rigidBodyObject;
         if (other && (other.name === 'rotating-arm' || other.name === 'windmill-blade' || other.name === 'lower-beam' || other.name === 'upper-beam')) {
+          const now = Date.now();
+          if (now - lastObstacleHitTime.current < 800) return; // 800ms collision cooldown
+          lastObstacleHitTime.current = now;
+
           const botPos = rigidBodyRef.current!.translation();
           const otherWorldPos = new THREE.Vector3();
           other.getWorldPosition(otherWorldPos);

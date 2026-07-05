@@ -63,6 +63,7 @@ export const Player: React.FC = () => {
   // Sound repeat rate timers
   const slideSoundTimer = useRef(0);
   const mudSoundTimer = useRef(0);
+  const lastObstacleHitTime = useRef(0);
 
   const lastPhaseRef = useRef(phase);
 
@@ -256,17 +257,34 @@ export const Player: React.FC = () => {
     // Decrement knockback timer and apply knockback velocity if active
     if (knockbackTimerRef.current > 0) {
       knockbackTimerRef.current -= delta;
-      const currentVel = rigidBody.linvel();
-      rigidBody.setLinvel({
-        x: knockbackVelRef.current.x,
-        y: currentVel.y,
-        z: knockbackVelRef.current.z
-      }, true);
       
-      if (visualGroupRef.current) {
-        visualGroupRef.current.rotation.y += delta * 15; // spin when hit!
+      const isJumpPressed = activeControls.jump;
+      const justPressedJump = isJumpPressed && !wasJumpPressedRef.current;
+      wasJumpPressedRef.current = isJumpPressed;
+
+      if (justPressedJump && jumpCountRef.current < 2) {
+        const currentVel = rigidBody.linvel();
+        rigidBody.setLinvel({
+          x: currentVel.x,
+          y: 6.2, // standard jump impulse Y
+          z: currentVel.z
+        }, true);
+        jumpCountRef.current += 1;
+        knockbackTimerRef.current = 0; // Clear knockback stagger!
+        audioManager.playJump();
+      } else {
+        const currentVel = rigidBody.linvel();
+        rigidBody.setLinvel({
+          x: knockbackVelRef.current.x,
+          y: currentVel.y,
+          z: knockbackVelRef.current.z
+        }, true);
+        
+        if (visualGroupRef.current) {
+          visualGroupRef.current.rotation.y += delta * 15; // spin when hit!
+        }
+        return;
       }
-      return;
     }
 
     const progressValue = getRacerProgressValue(currentLevelId, pos);
@@ -703,6 +721,10 @@ export const Player: React.FC = () => {
         if (isGodMode) return;
         const other = event.other.rigidBodyObject;
         if (other && (other.name === 'rotating-arm' || other.name === 'windmill-blade' || other.name === 'lower-beam' || other.name === 'upper-beam')) {
+          const now = Date.now();
+          if (now - lastObstacleHitTime.current < 800) return; // 800ms hit cooldown
+          lastObstacleHitTime.current = now;
+
           const playerPos = rigidBodyRef.current!.translation();
           const otherWorldPos = new THREE.Vector3();
           other.getWorldPosition(otherWorldPos);
