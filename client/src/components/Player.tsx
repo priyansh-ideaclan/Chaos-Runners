@@ -90,7 +90,7 @@ export const Player: React.FC = () => {
       'race_1': [0, 4, 0],
       'race_2': [0, 4, 0],
       'race_3': [0, 4, 0],
-      'survival_1': [0, 4, 0],
+      'survival_1': [0, 4, 5.5],
       'survival_2': [0, 4, 0],
       'logic_1': [0, 2.5, -5.8],
       'logic_2': [0, 4, 0],
@@ -759,7 +759,11 @@ export const Player: React.FC = () => {
           dir.y = other.name === 'lower-beam' ? 0.38 : 0.24; // Lower beam launches player high
 
           // Stronger knockback force for rotating sweepers and lower-beam
-          const knockForce = other.name === 'lower-beam' ? 14.8 : (other.name === 'rotating-arm' ? 12.8 : 8.5);
+          const knockForce = other.name === 'lower-beam' 
+            ? 11.8 
+            : (other.name === 'upper-beam' 
+                ? 7.0 
+                : (other.name === 'rotating-arm' ? 12.8 : 8.5));
           
           knockbackVelRef.current.copy(dir).multiplyScalar(knockForce);
           knockbackTimerRef.current = 0.5;

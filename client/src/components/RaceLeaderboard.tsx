@@ -45,7 +45,7 @@ export const RaceLeaderboard: React.FC = () => {
 
   const ROW_HEIGHT = 30;
   const GAP = 2;
-  const containerHeight = sorted.slice(0, 10).length * (ROW_HEIGHT + GAP) + 12;
+  const containerHeight = sorted.slice(0, 12).length * (ROW_HEIGHT + GAP) + 12;
 
   return (
     <div
@@ -101,7 +101,7 @@ export const RaceLeaderboard: React.FC = () => {
           transition: 'height 0.3s ease',
         }}
       >
-        {sorted.slice(0, 10).map((racer, idx) => {
+        {sorted.slice(0, 12).map((racer, idx) => {
           const isPlayer = racer.id === 'player';
           const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
 

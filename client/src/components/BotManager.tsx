@@ -10,7 +10,6 @@ export const BotManager: React.FC = () => {
 
   const botsList = useMemo(() => {
     return activeBots.map((bot, i) => {
-      // Y height varies based on level spawn deck
       let spawnHeight = 0.4;
       if (currentLevelId === 'final_1') {
         spawnHeight = 9.8;
@@ -18,16 +17,30 @@ export const BotManager: React.FC = () => {
         spawnHeight = 2.1;
       } else if (currentLevelId === 'survival_2') {
         spawnHeight = 8.5;
+      } else if (currentLevelId === 'survival_1') {
+        spawnHeight = 1.2;
       }
 
       let spawnPos: [number, number, number];
-      if (currentLevelId === 'survival_2') {
+      if (currentLevelId === 'survival_1') {
+        const totalParticipants = activeBots.length + 1;
+        const angle = ((i + 1) * Math.PI * 2) / totalParticipants;
+        const radius = 5.5;
+        spawnPos = [Math.sin(angle) * radius, spawnHeight, Math.cos(angle) * radius];
+      } else if (currentLevelId === 'survival_2') {
         const angle = ((i + 1) * Math.PI * 2) / 6;
         const radius = 2.4;
         spawnPos = [Math.sin(angle) * radius, spawnHeight, Math.cos(angle) * radius];
+      } else if (currentLevelId === 'logic_1') {
+        // Spawning on logic safety deck: Z center -5.8, X bounds [-4, 4], Z bounds [-7.05, -4.55]
+        const layoutX = [-3.0, 3.0, -1.5, 1.5, -3.0, 3.0, -1.5, 1.5, 0.0];
+        const layoutZ = [-5.8, -5.8, -5.8, -5.8, -6.4, -6.4, -6.4, -6.4, -6.4];
+        const idx = i % layoutX.length;
+        spawnPos = [layoutX[idx], spawnHeight, layoutZ[idx]];
       } else {
-        const layoutX = [-3.5, 3.5, -2.0, 2.0, -4.0, 4.0, -1.0, 1.0, -2.5, 2.5, 0.0];
-        const layoutZ = [0.0, 0.0, -1.6, -1.6, -3.2, -3.2, -4.8, -4.8, -6.4, -6.4, -8.0];
+        // race_1 level: spawn platform Z center -1.5, depth 9 (Z [-6, 3]), X bounds [-6, 6]
+        const layoutX = [-3.5, 3.5, -4.5, -2.25, 2.25, 4.5, -4.5, -2.25, 0.0, 2.25, 4.5];
+        const layoutZ = [0.0, 0.0, -1.5, -1.5, -1.5, -1.5, -3.0, -3.0, -3.0, -3.0, -3.0];
         const idx = i % layoutX.length;
         spawnPos = [layoutX[idx], spawnHeight, layoutZ[idx]];
       }

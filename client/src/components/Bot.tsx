@@ -1301,7 +1301,11 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
           dir.y = other.name === 'lower-beam' ? 0.38 : 0.24;
 
           // Stronger knockback force for lower-beam
-          const knockForce = other.name === 'lower-beam' ? 14.8 : (other.name === 'rotating-arm' ? 12.8 : 8.5);
+          const knockForce = other.name === 'lower-beam' 
+            ? 11.8 
+            : (other.name === 'upper-beam' 
+                ? 7.0 
+                : (other.name === 'rotating-arm' ? 12.8 : 8.5));
           
           knockbackVelRef.current.copy(dir).multiplyScalar(knockForce);
           knockbackTimerRef.current = 0.5;

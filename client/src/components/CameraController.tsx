@@ -59,7 +59,7 @@ const SPAWN_POINTS: Record<string, [number, number, number]> = {
   'race_1': [0, 4, 0],
   'race_2': [0, 4, 0],
   'race_3': [0, 4, 0],
-  'survival_1': [0, 4, 0],
+  'survival_1': [0, 4, 5.5],
   'survival_2': [0, 4, 0],
   'logic_1': [0, 2.5, -5.8],
   'logic_2': [0, 4, 0],

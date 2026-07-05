@@ -143,7 +143,7 @@ const THEMES: VisualTheme[] = ['SKY_BLUE', 'SUNSET_ORANGE', 'PURPLE_NEON', 'CAND
 // Starting spawn points for each level type
 const SPAWN_POINTS: Record<string, [number, number, number]> = {
   'race_1': [0, 0.4, 0],
-  'survival_1': [0, 1.2, 0],
+  'survival_1': [0, 1.2, 5.5],
   'logic_1': [0, 0.4, -5.8],
   'survival_2': [0, 8.5, 2.4],
 };
@@ -171,6 +171,7 @@ const ROUND_PROGRESSION: Array<{
   levelId: string;
   type: LevelType;
   objective: string;
+  maxPlayers: number;
   qualifyLimit: number;
   timeLimit: number;
 }> = [
@@ -178,28 +179,32 @@ const ROUND_PROGRESSION: Array<{
     levelId: 'race_1',
     type: 'RACE',
     objective: 'Reach the finish line before slots fill up!',
-    qualifyLimit: 8,
+    maxPlayers: 12,
+    qualifyLimit: 6,
     timeLimit: 0,
   },
   {
     levelId: 'survival_1',
     type: 'SURVIVAL',
     objective: 'Jungle Spin Out: Stay alive on the rotating jungle platform and dodge the dual spinning logs!',
-    qualifyLimit: 6,
+    maxPlayers: 10,
+    qualifyLimit: 5,
     timeLimit: 38,
   },
   {
     levelId: 'logic_1',
     type: 'LOGIC',
     objective: 'Stand on the correct color tile before the wrong ones drop!',
-    qualifyLimit: 4,
+    maxPlayers: 8,
+    qualifyLimit: 5,
     timeLimit: 42,
   },
   {
     levelId: 'survival_2',
     type: 'SURVIVAL',
     objective: 'Last player standing wins! The floor collapses beneath your feet!',
-    qualifyLimit: 1,
+    maxPlayers: 8,
+    qualifyLimit: 3,
     timeLimit: 90,
   },
 ];
@@ -345,12 +350,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
     const spawnPoint = SPAWN_POINTS[levelId] || [0, 4, 0];
 
-    // Seed 9 bots with unique names/colors/difficulties
-    const botNames = generateBotNames(9, get().playerName);
-    const botColors = ['#ffd60a', '#39ff14', '#00e5ff', '#ff6700', '#bd00ff', '#ff0055', '#00ffc4', '#ff7da7', '#a8ff00'];
+    // Seed 11 bots with unique names/colors/difficulties for 12 total players in Round 1
+    const botNames = generateBotNames(11, get().playerName);
+    const botColors = ['#ffd60a', '#39ff14', '#00e5ff', '#ff6700', '#bd00ff', '#ff0055', '#00ffc4', '#ff7da7', '#a8ff00', '#00ffc4', '#ff00ff'];
     const accessories = ['none', 'crown', 'party', 'glasses'];
-    const difficulties: ('EASY' | 'MEDIUM' | 'HARD')[] = ['EASY', 'MEDIUM', 'HARD', 'EASY', 'MEDIUM', 'MEDIUM', 'EASY', 'MEDIUM', 'HARD'];
-    const seededBots = Array.from({ length: 9 }, (_, i) => ({
+    const difficulties: ('EASY' | 'MEDIUM' | 'HARD')[] = ['EASY', 'MEDIUM', 'HARD', 'EASY', 'MEDIUM', 'MEDIUM', 'EASY', 'MEDIUM', 'HARD', 'MEDIUM', 'HARD'];
+    const seededBots = Array.from({ length: 11 }, (_, i) => ({
       id: `bot_${i}`,
       name: botNames[i] || `Runner_${i}`,
       color: botColors[i % botColors.length],
@@ -364,7 +369,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       currentLevelId: levelId,
       currentLevelType: 'RACE',
       roundObjective: 'Reach the finish line before slot fills!',
-      botQualifyingLimit: 8, // Top 8 qualify
+      botQualifyingLimit: 6, // Top 6 qualify (for 6 players in Round 2)
       playerQualified: false,
       winnersList: [],
       scores: {},
@@ -531,8 +536,9 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     // Filter surviving bots to only those who qualified this round
     let nextBots = activeBots.filter((bot) => winnersList.includes(bot.id));
-    if (roundConfig.levelId === 'survival_2' && nextBots.length > 5) {
-      nextBots = nextBots.slice(0, 5);
+    const maxBotsAllowed = roundConfig.maxPlayers - 1;
+    if (nextBots.length > maxBotsAllowed) {
+      nextBots = nextBots.slice(0, maxBotsAllowed);
     }
 
     const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
@@ -724,12 +730,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     const nextSeed = Math.random();
     const spawnPoint = SPAWN_POINTS[levelId] || [0, 4, 0];
 
-    // Seed bots (5 bots for Level 4, otherwise 9 bots)
-    const numBots = levelId === 'survival_2' ? 5 : 9;
+    // Seed bots matching the user's player limits for each Round (1 human player + N bots)
+    const numBots = roundConfig.maxPlayers - 1;
+
     const botNames = generateBotNames(numBots, get().playerName);
-    const botColors = ['#ffd60a', '#39ff14', '#00e5ff', '#ff6700', '#bd00ff', '#ff0055', '#00ffc4', '#ff7da7', '#a8ff00'];
+    const botColors = ['#ffd60a', '#39ff14', '#00e5ff', '#ff6700', '#bd00ff', '#ff0055', '#00ffc4', '#ff7da7', '#a8ff00', '#00ffc4', '#ff00ff'];
     const accessories = ['none', 'crown', 'party', 'glasses'];
-    const difficulties: ('EASY' | 'MEDIUM' | 'HARD')[] = ['EASY', 'MEDIUM', 'HARD', 'EASY', 'MEDIUM', 'MEDIUM', 'EASY', 'MEDIUM', 'HARD'];
+    const difficulties: ('EASY' | 'MEDIUM' | 'HARD')[] = ['EASY', 'MEDIUM', 'HARD', 'EASY', 'MEDIUM', 'MEDIUM', 'EASY', 'MEDIUM', 'HARD', 'MEDIUM', 'HARD'];
     const seededBots = Array.from({ length: numBots }, (_, i) => ({
       id: `bot_${i}`,
       name: botNames[i] || `Runner_${i}`,

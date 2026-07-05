@@ -317,14 +317,21 @@ export const Survival1: React.FC = () => {
   const upperBeamRbRef = useRef<RapierRigidBody>(null);
 
   const lowerBeamAngle = useRef(0);
-  const lowerBeamSpeed = useRef(1.8);
-  const lowerBeamTargetSpeed = useRef(1.8);
-  const lowerBeamSpeedChangeTimer = useRef(5.0);
+  const lowerBeamSpeed = useRef(0);
+  const lowerBeamTargetSpeed = useRef(1.2);
+  const lowerBeamSpeedChangeTimer = useRef(8.0);
 
   const upperBeamAngle = useRef(0);
-  const upperBeamSpeed = useRef(-1.4);
-  const upperBeamTargetSpeed = useRef(-1.4);
-  const upperBeamSpeedChangeTimer = useRef(7.0);
+  const upperBeamSpeed = useRef(0);
+  const upperBeamTargetSpeed = useRef(-0.9);
+  const upperBeamSpeedChangeTimer = useRef(8.0);
+
+  const playTime = useRef(0);
+
+  const isSynchronized = useRef(false);
+  const syncPatternTimer = useRef(15.0);
+  const syncDurationTimer = useRef(0);
+  const syncPatternType = useRef<'same' | 'opposite'>('opposite');
 
   // Animated emerald lake waves Y bobbing
   const lakeRef = useRef<THREE.Mesh>(null);
@@ -367,42 +374,132 @@ export const Survival1: React.FC = () => {
     // Save platform rotation state to global store so bots can read if platform is rotating
     (useGameStore.getState() as any).isPlatformRotating = isPlatformRotating.current;
 
+    const participantPositions: THREE.Vector3[] = [];
+    state.scene.traverse((child) => {
+      if (child.name === 'player' || child.name === 'bot') {
+        participantPositions.push(child.position);
+      }
+    });
+
+    const isAnyParticipantNearLower = participantPositions.some((pos) => {
+      const angle = Math.atan2(pos.x, pos.z);
+      const diff = (angle - lowerBeamAngle.current) % Math.PI;
+      const distToCenter = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
+      const perpDist = Math.abs(Math.sin(diff)) * distToCenter;
+      return perpDist < 2.5;
+    });
+
+    const isAnyParticipantNearUpper = participantPositions.some((pos) => {
+      const angle = Math.atan2(pos.x, pos.z);
+      const diff = (angle - upperBeamAngle.current) % Math.PI;
+      const distToCenter = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
+      const perpDist = Math.abs(Math.sin(diff)) * distToCenter;
+      return perpDist < 2.5;
+    });
+
+    if (phase === 'PLAYING') {
+      playTime.current += delta;
+
+      // Handle synchronization pattern scheduling
+      if (isSynchronized.current) {
+        syncDurationTimer.current -= delta;
+        if (syncDurationTimer.current <= 0) {
+          isSynchronized.current = false;
+          syncPatternTimer.current = 20.0 + Math.random() * 10.0; // Next sync in 20-30s
+          
+          // Reset change timers to trigger normal behavior
+          lowerBeamSpeedChangeTimer.current = 0.5;
+          upperBeamSpeedChangeTimer.current = 0.5;
+        }
+      } else {
+        syncPatternTimer.current -= delta;
+        if (syncPatternTimer.current <= 0) {
+          isSynchronized.current = true;
+          syncDurationTimer.current = 10.0 + Math.random() * 4.0; // Synchronize for 10-14 seconds
+          syncPatternType.current = Math.random() > 0.5 ? 'same' : 'opposite';
+          
+          // Choose a synchronized speed magnitude (0.8 to 1.2 rad/s)
+          const syncSpeed = 0.8 + Math.random() * 0.4;
+          const dir = Math.random() > 0.5 ? 1 : -1;
+          
+          lowerBeamTargetSpeed.current = dir * syncSpeed;
+          upperBeamTargetSpeed.current = (syncPatternType.current === 'same' ? dir : -dir) * syncSpeed;
+          
+          // Hold speed changes during synchronization
+          lowerBeamSpeedChangeTimer.current = syncDurationTimer.current;
+          upperBeamSpeedChangeTimer.current = syncDurationTimer.current;
+        }
+      }
+    } else {
+      playTime.current = 0;
+      isSynchronized.current = false;
+      syncPatternTimer.current = 15.0;
+      syncDurationTimer.current = 0;
+      
+      lowerBeamSpeed.current = 0;
+      lowerBeamTargetSpeed.current = 1.2;
+      lowerBeamSpeedChangeTimer.current = 9.0 + Math.random() * 6.0;
+
+      upperBeamSpeed.current = 0;
+      upperBeamTargetSpeed.current = -0.9;
+      upperBeamSpeedChangeTimer.current = 9.0 + Math.random() * 6.0;
+    }
+
+    const rawRamp = Math.min(1.0, playTime.current / 2.5);
+    const ramp = rawRamp * rawRamp * (3 - 2 * rawRamp); // smoothstep ease
+
     // ── 2. Rotate Lower Beam ──
     const lowerB = lowerBeamRbRef.current;
     if (lowerB) {
-      if (phase === 'PLAYING') {
+      if (phase === 'PLAYING' && !isSynchronized.current) {
         lowerBeamSpeedChangeTimer.current -= delta;
         if (lowerBeamSpeedChangeTimer.current <= 0) {
-          // Speed up or slow down (30-60 RPM equivalent: 3.1 to 6.2 rad/s)
-          const dir = Math.random() > 0.55 ? 1 : -1;
-          lowerBeamTargetSpeed.current = dir * (2.8 + Math.random() * 2.2);
-          lowerBeamSpeedChangeTimer.current = 5.0 + Math.random() * 5.0;
+          if (isAnyParticipantNearLower) {
+            // Postpone speed change by 1.0 second for player safety
+            lowerBeamSpeedChangeTimer.current = 1.0;
+          } else {
+            const currentDir = Math.sign(lowerBeamTargetSpeed.current) || 1;
+            const shouldReverse = Math.random() < 0.3; // 30% chance to reverse
+            const nextDir = shouldReverse ? -currentDir : currentDir;
+            const nextSpeedMag = 0.9 + Math.random() * 0.9; // Rebalanced speed: 0.9 to 1.8 rad/s
+            lowerBeamTargetSpeed.current = nextDir * nextSpeedMag;
+            lowerBeamSpeedChangeTimer.current = 9.0 + Math.random() * 6.0; // 9-15s gap
+          }
         }
       }
       lowerBeamSpeed.current = THREE.MathUtils.lerp(lowerBeamSpeed.current, lowerBeamTargetSpeed.current, delta * 1.5);
-      lowerBeamAngle.current += lowerBeamSpeed.current * delta;
+      lowerBeamAngle.current += lowerBeamSpeed.current * ramp * delta;
       
       const qLower = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), lowerBeamAngle.current);
       lowerB.setNextKinematicRotation(qLower);
+      lowerB.userData = { speed: lowerBeamSpeed.current };
     }
 
     // ── 3. Rotate Upper Beam ──
     const upperB = upperBeamRbRef.current;
     if (upperB) {
-      if (phase === 'PLAYING') {
+      if (phase === 'PLAYING' && !isSynchronized.current) {
         upperBeamSpeedChangeTimer.current -= delta;
         if (upperBeamSpeedChangeTimer.current <= 0) {
-          // 20-40 RPM equivalent: 2.0 to 4.2 rad/s
-          const dir = Math.random() > 0.45 ? 1 : -1;
-          upperBeamTargetSpeed.current = dir * (1.8 + Math.random() * 1.8);
-          upperBeamSpeedChangeTimer.current = 5.0 + Math.random() * 5.0;
+          if (isAnyParticipantNearUpper) {
+            // Postpone speed change by 1.0 second for player safety
+            upperBeamSpeedChangeTimer.current = 1.0;
+          } else {
+            const currentDir = Math.sign(upperBeamTargetSpeed.current) || -1;
+            const shouldReverse = Math.random() < 0.3; // 30% chance to reverse
+            const nextDir = shouldReverse ? -currentDir : currentDir;
+            const nextSpeedMag = 0.6 + Math.random() * 0.7; // Rebalanced speed: 0.6 to 1.3 rad/s
+            upperBeamTargetSpeed.current = nextDir * nextSpeedMag;
+            upperBeamSpeedChangeTimer.current = 9.0 + Math.random() * 6.0; // 9-15s gap
+          }
         }
       }
       upperBeamSpeed.current = THREE.MathUtils.lerp(upperBeamSpeed.current, upperBeamTargetSpeed.current, delta * 1.5);
-      upperBeamAngle.current += upperBeamSpeed.current * delta;
+      upperBeamAngle.current += upperBeamSpeed.current * ramp * delta;
 
       const qUpper = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), upperBeamAngle.current);
       upperB.setNextKinematicRotation(qUpper);
+      upperB.userData = { speed: upperBeamSpeed.current };
     }
 
     // ── 4. Animate Emerald Lake Water Waves ──

@@ -5,10 +5,10 @@ import { Sparkles, Play, Volume2, VolumeX, Unlock, Lock } from 'lucide-react';
 import { useMusicStore } from '../store/useMusicStore';
 
 const LEVEL_NAMES = [
-  'Level 1: Race – Beginner Bounds',
-  'Level 2: Survival – Spinning Arena',
-  'Level 3: Memory – Tile Showdown',
-  'Level 4: Hex – Hex-A-Terrestrial',
+  'Round 1: Race – Beginner Bounds',
+  'Round 2: Survival – Spinning Arena',
+  'Round 3: Memory – Tile Showdown',
+  'Round 4: Hex – Hex-A-Terrestrial',
 ];
 
 const COLORS = [
@@ -135,7 +135,7 @@ export const MainMenu: React.FC = () => {
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', fontWeight: 800 }}>
-              Select Level
+              Select Round
             </span>
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, color: unlockAllLevels ? '#ffd60a' : 'rgba(255,255,255,0.5)', transition: 'color 0.2s' }}>
               <input 
@@ -147,7 +147,7 @@ export const MainMenu: React.FC = () => {
                 }} 
                 style={{ cursor: 'pointer', margin: 0, accentColor: '#ffd60a' }}
               />
-              🔓 Unlock All Levels
+              🔓 Unlock All Rounds
             </label>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
