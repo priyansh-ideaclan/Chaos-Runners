@@ -53,6 +53,8 @@ export const MainMenu: React.FC = () => {
     setPlayerName,
     unlockAllLevels,
     setUnlockAllLevels,
+    gameDifficulty,
+    setGameDifficulty,
   } = useGameStore();
 
   // Start background music loop on main lobby entry (only after player has entered their name)
@@ -211,6 +213,43 @@ export const MainMenu: React.FC = () => {
             }}>
               <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', fontWeight: 600 }}>Tries</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'rgba(255,255,255,0.7)' }}>{wins + failures}</div>
+            </div>
+          </div>
+
+          {/* Game Mode Selection */}
+          <div style={{ marginBottom: '16px' }}>
+            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+              Round Difficulty Mode
+            </span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
+              {(['EASY', 'MEDIUM', 'HARD'] as const).map((diff) => (
+                <button
+                  key={diff}
+                  onClick={() => { setGameDifficulty(diff); audioManager.playClick(); }}
+                  className="btn-secondary"
+                  style={{
+                    padding: '8px 10px',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    textAlign: 'center',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    border: '1px solid',
+                    borderColor: gameDifficulty === diff 
+                      ? (diff === 'EASY' ? '#39ff14' : diff === 'HARD' ? '#ff0055' : 'var(--secondary)')
+                      : 'var(--glass-border)',
+                    background: gameDifficulty === diff 
+                      ? (diff === 'EASY' ? 'rgba(57, 255, 20, 0.08)' : diff === 'HARD' ? 'rgba(255, 0, 85, 0.08)' : 'rgba(0, 229, 255, 0.08)')
+                      : 'var(--glass-bg)',
+                    color: gameDifficulty === diff 
+                      ? (diff === 'EASY' ? '#39ff14' : diff === 'HARD' ? '#ff0055' : '#00e5ff')
+                      : 'rgba(255, 255, 255, 0.6)',
+                  }}
+                >
+                  {diff}
+                </button>
+              ))}
             </div>
           </div>
 

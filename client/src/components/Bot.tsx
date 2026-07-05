@@ -48,11 +48,11 @@ const LEVEL_1_MIDDLE_PATH: [number, number, number][] = [
   [0, 0, 5],
   [0, 0, 10],
   [0, 0, 15],
-  [-1.5, 0.1, 24.5], // Tilting deck
-  [1.5, 0.1, 28.2],  // Platform A
-  [-1.2, 0.35, 31.8], // Platform B
-  [1.2, 0.6, 35.4],  // Platform C
-  [-1.2, 0.85, 39.0], // Platform D
+  [-2.5, 0.1, 24.0], // Tilting deck
+  [2.5, 0.1, 28.2],  // Platform A
+  [-1.2, 0.35, 33.8], // Platform B
+  [1.2, 0.6, 37.6],  // Platform C
+  [-1.2, 0.85, 41.4], // Platform D
   [0, 1.0, 40.6],    // Checkpoint 2
   [0, 1.05, 47.0],   // Jump Pad
   [0, 7.5, 53.5],    // Landing deck Storey 1 – thread center corridor
@@ -115,7 +115,7 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
   const rightLegRef = useRef<THREE.Group>(null);
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
-  const trailMeshRef = useRef<THREE.Mesh>(null);
+
 
   const { rapier, world } = useRapier();
   const phase = useGameStore((state) => state.phase);
@@ -163,6 +163,7 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
   const botSpeed = useRef(difficulty === 'EASY' ? 4.0 : difficulty === 'MEDIUM' ? 4.8 : 5.6);
   const botPath = useRef<[number, number, number][]>(LEVEL_1_MIDDLE_PATH);
   const windmillMistakeFlag = useRef<boolean | null>(null);
+  const pusherMistakeFlag = useRef<boolean | null>(null);
   
   // Hex-A-Terrestrial refs
   const lastSelectedHexId = useRef<string | null>(null);
@@ -186,6 +187,8 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       stuckTimeRef.current = 0;
       knockbackTimerRef.current = 0;
       lastPosRef.current.set(spawnPos[0], spawnPos[1], spawnPos[2]);
+      windmillMistakeFlag.current = null;
+      pusherMistakeFlag.current = null;
       
       isNitroActive.current = false;
       nitroCooldown.current = 0;
@@ -202,9 +205,11 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       personalityRef.current = personalities[botIdx % personalities.length];
 
       // Tune speeds based on difficulty and personality
-      let baseSpeed = difficulty === 'EASY' ? 4.0 : difficulty === 'MEDIUM' ? 4.8 : 5.6;
-      if (personalityRef.current === 'AGGRESSIVE') baseSpeed *= 1.06;
-      if (personalityRef.current === 'SAFE') baseSpeed *= 0.94;
+      let baseSpeed = difficulty === 'EASY' ? 4.6 : difficulty === 'MEDIUM' ? 5.5 : 6.5;
+      if (personalityRef.current === 'AGGRESSIVE') baseSpeed *= 1.10;
+      else if (personalityRef.current === 'RISKY') baseSpeed *= 1.06;
+      else if (personalityRef.current === 'BALANCED') baseSpeed *= 1.02;
+      else baseSpeed *= 0.96; // SAFE
       botSpeed.current = baseSpeed;
 
       // Assign bot branching path choices based on ID
@@ -276,25 +281,25 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       const isNearSweepers = (pos.z > 123 && pos.z < 132) || (pos.z > 85 && pos.z < 90);
       const isComplexPlatforming = (pos.z > 23 && pos.z < 44) || (pos.z > 58 && pos.z < 81);
       const isNarrowBeam = (pos.z > 110 && pos.z < 115 && Math.abs(pos.x) < 1.0);
-      const isStraightSection = (pos.z > 2 && pos.z < 18) || (pos.z > 102 && pos.z < 122);
+      const isStraightSection = (pos.z > 2 && pos.z < 18) || (pos.z > 102 && pos.z < 118);
       
       const avoidNitro = isNearHammers || isNearSweepers || isComplexPlatforming || isNarrowBeam;
       
       if (!avoidNitro) {
         let triggerChance = 0;
         if (personality === 'AGGRESSIVE') {
-          triggerChance = isStraightSection ? 0.005 : 0.002;
+          triggerChance = isStraightSection ? 0.015 : 0.005;
         } else if (personality === 'BALANCED') {
-          triggerChance = isStraightSection ? 0.0025 : 0.0006;
+          triggerChance = isStraightSection ? 0.008 : 0.002;
         } else {
           // CAUTIOUS
-          triggerChance = isStraightSection ? 0.0012 : 0;
+          triggerChance = isStraightSection ? 0.004 : 0.001;
         }
         
         if (Math.random() < triggerChance) {
           isNitroActive.current = true;
-          nitroDuration.current = 1.0;
-          nitroCooldown.current = 5.0;
+          nitroDuration.current = 1.6;
+          nitroCooldown.current = 4.0;
         }
       }
     }
@@ -355,12 +360,7 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       nameLabelRef.current.fillOpacity = dist > 25 ? 0 : Math.max(0.35, 1.0 - (dist - 6) / 20);
     }
 
-    if (currentLevelId === 'race_1') {
-      if (pos.z > 20 && botLastCheckpoint.current[2] < 20) botLastCheckpoint.current = [0, 1.2, 20];
-      if (pos.z > 43.5 && botLastCheckpoint.current[2] < 43.5) botLastCheckpoint.current = [0, 2.2, 43.5];
-      if (pos.z > 80 && botLastCheckpoint.current[2] < 80) botLastCheckpoint.current = [0, 14.7, 80];
-      if (pos.z > 110 && botLastCheckpoint.current[2] < 110) botLastCheckpoint.current = [0, 5.7, 110];
-    }
+
 
     // 1. Raycast ground check (Velocity Locked & Offset Origin)
     const rayOrigin = new THREE.Vector3(pos.x, pos.y - 0.51, pos.z);
@@ -384,7 +384,18 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       jumpCountRef.current = 1; // fell off a ledge, only 1 jump remaining
     }
 
-    // 2. Teleport check or instant elimination if fell below boundaries
+    // 2. Teleport check or instant elimination if fell below 
+    if (currentLevelId === 'race_1') {
+      if (pos.z > 20 && botLastCheckpoint.current[2] < 20) {
+        const checkpointX = pos.x < -4.0 ? -7.5 : (pos.x > 4.0 ? 7.5 : 0.0);
+        botLastCheckpoint.current = [checkpointX, 0.5, 20.0];
+      }
+      if (pos.z > 43.5 && botLastCheckpoint.current[2] < 43.5) botLastCheckpoint.current = [0, 2.2, 43.5];
+      if (pos.z > 80 && botLastCheckpoint.current[2] < 80) botLastCheckpoint.current = [0, 14.7, 80];
+      if (pos.z > 110 && botLastCheckpoint.current[2] < 110) botLastCheckpoint.current = [0, 5.7, 110];
+    }
+
+    // 2. Kill Zone Fall Check
     const killBoundaryY = (currentLevelId === 'logic_1') ? 0.0 : -8.0;
     if (pos.y < killBoundaryY) {
       useGameStore.getState().triggerSplash([pos.x, -8.2, pos.z], '#ff007f');
@@ -398,12 +409,21 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
         rb.setAngvel(new THREE.Vector3(0, 0, 0), true);
         stuckTimeRef.current = 0;
 
-        // Trigger recovery nitro
-        if (nitroCooldown.current === 0 && !isNitroActive.current) {
-          isNitroActive.current = true;
-          nitroDuration.current = 1.0;
-          nitroCooldown.current = 5.0;
+        // Reset target path index based on respawn Z position to prevent steering backwards
+        let nextNodeIdx = 0;
+        const nodes = botPath.current;
+        for (let i = 0; i < nodes.length; i++) {
+          if (nodes[i][2] >= botLastCheckpoint.current[2]) {
+            nextNodeIdx = i;
+            break;
+          }
         }
+        currentNodeIndex.current = nextNodeIdx;
+
+        // Trigger recovery nitro - bypass cooldown for competitive recovery
+        isNitroActive.current = true;
+        nitroDuration.current = 1.6;
+        nitroCooldown.current = 3.5;
       }
       return;
     }
@@ -439,7 +459,7 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
     const isSliding = currentSurface === 'slide' || currentSurface === 'speed-ramp';
 
     if (isNitroActive.current) {
-      activeSpeed *= 1.48; // 48% speed boost
+      activeSpeed *= 1.58; // 58% speed boost for highly competitive AI
       accelerationRatio = Math.min(1.0, accelerationRatio * 1.8);
     }
 
@@ -553,9 +573,9 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
 
 
 
-    // Custom pattern windmill at Landmark 11 (Z = 22.0) and bridge windmills (Z = 68.0) timing checks
+    // Custom pattern windmill at Landmark 11 (Z = 22.0) and bridge windmills (Z = 61.8) timing checks
     const isNearLandmark11Windmill = currentLevelId === 'race_1' && pos.x < -4.0 && pos.z > 19.5 && pos.z < 24.5;
-    const isNearBridgeWindmill = currentLevelId === 'race_1' && pos.x > 0.5 && pos.z > 64.0 && pos.z < 69.5;
+    const isNearBridgeWindmill = currentLevelId === 'race_1' && pos.z > 58.5 && pos.z < 62.5;
 
     if (isNearLandmark11Windmill) {
       if (windmillMistakeFlag.current === null) {
@@ -586,6 +606,34 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
       }
     } else {
       windmillMistakeFlag.current = null;
+    }
+
+    // Custom wall pushers at Landmark 12 (Z = 27.0) and Landmark 13 (Z = 32.0) timing checks
+    const isNearPusher1 = currentLevelId === 'race_1' && pos.x < -4.0 && pos.z > 24.5 && pos.z < 28.5;
+    const isNearPusher2 = currentLevelId === 'race_1' && pos.x < -4.0 && pos.z > 29.5 && pos.z < 33.5;
+
+    if (isNearPusher1 || isNearPusher2) {
+      if (pusherMistakeFlag.current === null) {
+        const threshold = difficulty === 'EASY' ? 0.35 : difficulty === 'MEDIUM' ? 0.12 : 0.02;
+        pusherMistakeFlag.current = Math.random() < threshold;
+      }
+
+      if (pusherMistakeFlag.current === false) {
+        const elapsed = state.clock.getElapsedTime();
+        if (isNearPusher1) {
+          const t1 = elapsed % 4.0;
+          if (t1 >= 1.8 && t1 < 4.0) {
+            activeSpeed = 0; // wait for pusher 1
+          }
+        } else {
+          const t2 = (elapsed + 2.0) % 4.0;
+          if (t2 >= 1.8 && t2 < 4.0) {
+            activeSpeed = 0; // wait for pusher 2
+          }
+        }
+      }
+    } else {
+      pusherMistakeFlag.current = null;
     }
 
     // 4a. Wind zone cycle evasion check (Bots wait before crossing if wind is high)
@@ -679,6 +727,23 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
         if (Math.abs(targetNode[2] - 47.0) < 0.1) {
           targetPos.x = botIndex % 2 === 0 ? -2.2 : 2.2;
         }
+
+        // Dynamically follow Curved Slides in Level 1 (Z = 77.0 to 90.0)
+        if (currentLevelId === 'race_1' && pos.z >= 77.0 && pos.z <= 90.0) {
+          const t = (pos.z - 77.0) / (90.0 - 77.0);
+          const tClamped = THREE.MathUtils.clamp(t, 0, 1);
+          // Detect which slide the bot is on based on its current position
+          if (pos.x < -2.0) {
+            // Left curved slide (startX=-4.5, endX=-5.0, sideOffset=-3.5)
+            targetPos.x = -4.5 + (-5.0 - -4.5) * tClamped + (-3.5) * Math.sin(tClamped * Math.PI);
+          } else if (pos.x > 2.0) {
+            // Right curved slide (startX=4.5, endX=5.0, sideOffset=3.5)
+            targetPos.x = 4.5 + (5.0 - 4.5) * tClamped + (3.5) * Math.sin(tClamped * Math.PI);
+          } else {
+            // Middle slide is straight (X=0)
+            targetPos.x = 0;
+          }
+        }
         
         // Dynamically adjust Route Choice on node 16 (which is index 16)
         if (currentLevelId === 'race_1' && currentNodeIndex.current === 999) {
@@ -695,9 +760,40 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
 
         const dist = new THREE.Vector3(pos.x, pos.y, pos.z).distanceTo(targetPos);
 
-        if (dist < 1.3 && currentNodeIndex.current < pathNodes.length - 1) {
+        // Custom progressive threshold per node type to keep bots on track
+        const isJumpPadNode = Math.abs(targetNode[2] - 47.0) < 0.1 || Math.abs(targetNode[2] - 63.5) < 0.1;
+        const isNarrowBridge = Math.abs(targetNode[2] - 97.0) < 0.1;
+        const isSeesaw = targetNode[2] >= 22.0 && targetNode[2] <= 30.0;
+        
+        let threshold = 1.3;
+        if (isJumpPadNode) {
+          threshold = 0.35; // Must walk directly onto the jump pad
+        } else if (isNarrowBridge) {
+          threshold = 0.65; // Stay centered on the narrow bridge plank
+        } else if (isSeesaw) {
+          threshold = 0.75; // Stay centered on seesaw tilt bounds
+        }
+
+        let reached = dist < threshold;
+        if (isJumpPadNode) {
+          const flatDist = new THREE.Vector2(pos.x - targetPos.x, pos.z - targetPos.z).length();
+          reached = flatDist < 0.6 || pos.z > (targetNode[2] - 0.2);
+        }
+
+        if (reached && currentNodeIndex.current < pathNodes.length - 1) {
           currentNodeIndex.current++;
-          const widthSpread = difficulty === 'EASY' ? 1.4 : difficulty === 'MEDIUM' ? 0.7 : 0.2;
+          
+          const nextNode = pathNodes[currentNodeIndex.current];
+          const isNextBridge = Math.abs(nextNode[2] - 97.0) < 0.1;
+          const isNextSeesaw = nextNode[2] >= 22.0 && nextNode[2] <= 30.0;
+          
+          let widthSpread = difficulty === 'EASY' ? 1.4 : difficulty === 'MEDIUM' ? 0.7 : 0.2;
+          if (isNextBridge) {
+            widthSpread = 0.05; // zero offset on 1.2m narrow bridge planks
+          } else if (isNextSeesaw) {
+            widthSpread = 0.15; // heavily centered on tilting seesaw decks
+          }
+
           targetOffset.current.set(
             (Math.random() - 0.5) * widthSpread,
             0,
@@ -1117,24 +1213,7 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
 
     rb.setLinvel({ x: nextVelX, y: moveTargetY, z: nextVelZ }, true);
 
-    // Update trail mesh visibility and color dynamically
-    if (trailMeshRef.current) {
-      const showTrail = isNitroActive.current || isSliding;
-      trailMeshRef.current.visible = showTrail;
-      if (showTrail) {
-        let colorStr = "#ff007f"; // pink nitro
-        if (!isNitroActive.current) {
-          if (pos.x < -2.0) {
-            colorStr = "#0066ff"; // water slide (blue)
-          } else if (pos.x > 2.0) {
-            colorStr = "#ffffff"; // ice slide (white)
-          } else {
-            colorStr = "#ffd60a"; // rainbow slide (gold)
-          }
-        }
-        (trailMeshRef.current.material as THREE.MeshBasicMaterial).color.set(colorStr);
-      }
-    }
+
 
     // Rotate bot visual mesh
     if (steerDir.lengthSq() > 0.01 && visualGroupRef.current) {
@@ -1385,10 +1464,7 @@ export const Bot: React.FC<BotProps> = ({ id, name, color, accessory, difficulty
 
       </group>
 
-      <mesh ref={trailMeshRef} position={[0, -0.4, -0.3]} visible={false}>
-        <boxGeometry args={[0.4, 0.05, 0.6]} />
-        <meshBasicMaterial transparent opacity={0.65} />
-      </mesh>
+
 
       {/* Billboard name label above bot head */}
       <Billboard position={[0, 0.9, 0]}>

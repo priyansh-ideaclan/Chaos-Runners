@@ -687,6 +687,111 @@ class AudioManager {
     noise.start();
     noise.stop(this.ctx.currentTime + 0.16);
   }
+
+  public playWarningBeep() {
+    this.resumeContext();
+    if (!this.ctx || !this.sfxGain) return;
+
+    const osc = this.ctx.createOscillator();
+    const env = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(880, this.ctx.currentTime); // High pitch beep
+
+    env.gain.setValueAtTime(0.12, this.ctx.currentTime);
+    env.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+
+    osc.connect(env);
+    env.connect(this.sfxGain);
+
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.11);
+  }
+
+  public playPusherExtend() {
+    this.resumeContext();
+    if (!this.ctx || !this.sfxGain) return;
+
+    const osc = this.ctx.createOscillator();
+    const noise = this.ctx.createBufferSource();
+    const noiseFilter = this.ctx.createBiquadFilter();
+    const env = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.25);
+
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.25);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    noise.buffer = buffer;
+
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.setValueAtTime(300, this.ctx.currentTime);
+
+    env.gain.setValueAtTime(0.3, this.ctx.currentTime);
+    env.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+
+    osc.connect(env);
+    noise.connect(noiseFilter);
+    noiseFilter.connect(env);
+    env.connect(this.sfxGain);
+
+    osc.start();
+    noise.start();
+    osc.stop(this.ctx.currentTime + 0.26);
+    noise.stop(this.ctx.currentTime + 0.26);
+  }
+
+  public playMetalImpact() {
+    this.resumeContext();
+    if (!this.ctx || !this.sfxGain) return;
+
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const noise = this.ctx.createBufferSource();
+    const noiseFilter = this.ctx.createBiquadFilter();
+    const env = this.ctx.createGain();
+
+    osc1.type = 'triangle';
+    osc1.frequency.setValueAtTime(180, this.ctx.currentTime);
+    osc1.frequency.linearRampToValueAtTime(80, this.ctx.currentTime + 0.4);
+
+    osc2.type = 'sawtooth';
+    osc2.frequency.setValueAtTime(320, this.ctx.currentTime);
+    osc2.frequency.exponentialRampToValueAtTime(60, this.ctx.currentTime + 0.35);
+
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.4);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    noise.buffer = buffer;
+
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(200, this.ctx.currentTime);
+    noiseFilter.Q.setValueAtTime(1.5, this.ctx.currentTime);
+
+    env.gain.setValueAtTime(0.48, this.ctx.currentTime);
+    env.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+
+    osc1.connect(env);
+    osc2.connect(env);
+    noise.connect(noiseFilter);
+    noiseFilter.connect(env);
+    env.connect(this.sfxGain);
+
+    osc1.start();
+    osc2.start();
+    noise.start();
+    osc1.stop(this.ctx.currentTime + 0.41);
+    osc2.stop(this.ctx.currentTime + 0.41);
+    noise.stop(this.ctx.currentTime + 0.41);
+  }
 }
 
 export const audioManager = new AudioManager();

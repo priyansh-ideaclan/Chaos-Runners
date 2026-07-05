@@ -20,8 +20,7 @@ export const Player: React.FC = () => {
   const setPlayerSliding = useGameStore((state) => state.setPlayerSliding);
 
   const wasNitroActiveRef = useRef(false);
-  const nitroTrailParticles = useRef<Array<{ pos: THREE.Vector3; age: number }>>([]);
-  const trailPointsRef = useRef<THREE.Points>(null);
+
   const { camera } = useThree();
   const { rapier, world } = useRapier();
 
@@ -65,23 +64,30 @@ export const Player: React.FC = () => {
   const slideSoundTimer = useRef(0);
   const mudSoundTimer = useRef(0);
 
+  const lastPhaseRef = useRef(phase);
+
   // Reset player position when match starts or in round intro
   useEffect(() => {
-    if ((phase === 'ROUND_INTRO' || phase === 'PLAYING') && rigidBodyRef.current && lastCheckpoint) {
-      rigidBodyRef.current.setTranslation(new THREE.Vector3(...lastCheckpoint), true);
-      rigidBodyRef.current.setLinvel(new THREE.Vector3(0, 0, 0), true);
-      rigidBodyRef.current.setAngvel(new THREE.Vector3(0, 0, 0), true);
-      isDivingRef.current = false;
-      diveTimerRef.current = 0;
-      diveCooldownRef.current = 0;
-      isGrabbingRef.current = false;
-      if (visualGroupRef.current) {
-        visualGroupRef.current.visible = true;
-      }
-      if (phase === 'PLAYING') {
-        audioManager.playMatchStart();
+    // Only teleport/reset player if transitioning from lobby/gameover/victory into intro/playing phase
+    if ((phase === 'ROUND_INTRO' || phase === 'PLAYING') && 
+        (lastPhaseRef.current === 'MENU' || lastPhaseRef.current === 'GAMEOVER' || lastPhaseRef.current === 'VICTORY')) {
+      if (rigidBodyRef.current && lastCheckpoint) {
+        rigidBodyRef.current.setTranslation(new THREE.Vector3(...lastCheckpoint), true);
+        rigidBodyRef.current.setLinvel(new THREE.Vector3(0, 0, 0), true);
+        rigidBodyRef.current.setAngvel(new THREE.Vector3(0, 0, 0), true);
+        isDivingRef.current = false;
+        diveTimerRef.current = 0;
+        diveCooldownRef.current = 0;
+        isGrabbingRef.current = false;
+        if (visualGroupRef.current) {
+          visualGroupRef.current.visible = true;
+        }
+        if (phase === 'PLAYING') {
+          audioManager.playMatchStart();
+        }
       }
     }
+    lastPhaseRef.current = phase;
   }, [phase, lastCheckpoint]);
 
   // Teleport player during MENU phase when selected level changes
@@ -524,46 +530,7 @@ export const Player: React.FC = () => {
       audioManager.setSlideWindWhoosh(0.0);
     }
 
-    // Update Nitro and Slide particle trail
-    if ((isNitroActive || isSliding) && Math.random() < 0.7) {
-      nitroTrailParticles.current.push({
-        pos: new THREE.Vector3(pos.x + (Math.random() - 0.5) * 0.35, pos.y - 0.45, pos.z + (Math.random() - 0.5) * 0.35),
-        age: 0
-      });
-    }
 
-    nitroTrailParticles.current.forEach((p) => {
-      p.age += delta;
-      p.pos.y += delta * 0.4;
-    });
-    nitroTrailParticles.current = nitroTrailParticles.current.filter((p) => p.age < 0.4);
-
-    if (trailPointsRef.current) {
-      const geom = trailPointsRef.current.geometry;
-      const positions = geom.attributes.position.array as Float32Array;
-      positions.fill(0);
-      nitroTrailParticles.current.forEach((p, idx) => {
-        if (idx < 20) {
-          positions[idx * 3] = p.pos.x - pos.x;
-          positions[idx * 3 + 1] = p.pos.y - pos.y;
-          positions[idx * 3 + 2] = p.pos.z - pos.z;
-        }
-      });
-      geom.attributes.position.needsUpdate = true;
-
-      // Adjust particle colors dynamically based on surface/mode
-      let colorStr = '#00e5ff'; // cyan nitro
-      if (isSliding) {
-        if (pos.x < -2.0) {
-          colorStr = '#0066ff'; // water slide (blue)
-        } else if (pos.x > 2.0) {
-          colorStr = '#ffffff'; // ice slide (white)
-        } else {
-          colorStr = '#ffd60a'; // rainbow slide (gold/yellow)
-        }
-      }
-      (trailPointsRef.current.material as THREE.PointsMaterial).color.set(colorStr);
-    }
 
     // Rotate player visuals
     if (moveDir.lengthSq() > 0.01 && visualGroupRef.current) {
@@ -859,18 +826,7 @@ export const Player: React.FC = () => {
         </group>
       )}
 
-      {/* Sparks trail */}
-      <points ref={trailPointsRef}>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={20}
-            array={new Float32Array(20 * 3)}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <pointsMaterial size={0.18} color="#00e5ff" sizeAttenuation transparent opacity={0.8} />
-      </points>
+
 
       {/* Billboard name label above player head */}
       <Billboard position={[0, 0.9, 0]}>

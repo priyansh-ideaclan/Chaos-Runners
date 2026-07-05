@@ -2270,72 +2270,74 @@ export const HorizontalWindBlower: React.FC<HorizontalWindBlowerProps> = ({
     <group ref={groupRef} position={position} name="wind-zone" userData={{ size, force: [0, 0, 0] }}>
       
       {/* 1. Floating HTML Speed Gauge Dashboard */}
-      <Html distanceFactor={11} position={[fanX, 2.2, 0]} transform>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          background: 'rgba(15, 23, 42, 0.88)',
-          border: `2px solid ${uiColor}aa`,
-          borderRadius: '12px',
-          padding: '8px 12px',
-          boxShadow: `0 4px 20px rgba(0, 0, 0, 0.6), 0 0 10px ${uiColor}44`,
-          color: '#ffffff',
-          fontFamily: 'system-ui, sans-serif',
-          width: '110px',
-          userSelect: 'none',
-          pointerEvents: 'none',
-          textAlign: 'center',
-        }}>
-          {/* Segmented Arc/Bar */}
-          <div style={{ display: 'flex', gap: '4px', width: '100%', height: '8px', marginBottom: '6px' }}>
-            <div style={{
-              flex: 1,
-              background: '#00e5ff',
-              borderRadius: '4px',
-              opacity: phaseName === 'weak' ? 1 : 0.2,
-              boxShadow: phaseName === 'weak' ? '0 0 12px #00e5ff' : 'none',
-              transition: 'opacity 0.2s, box-shadow 0.2s',
-            }} />
-            <div style={{
-              flex: 1,
-              background: '#ffd60a',
-              borderRadius: '4px',
-              opacity: phaseName === 'medium' ? 1 : 0.2,
-              boxShadow: phaseName === 'medium' ? '0 0 12px #ffd60a' : 'none',
-              transition: 'opacity 0.2s, box-shadow 0.2s',
-            }} />
-            <div style={{
-              flex: 1,
-              background: '#ff007f',
-              borderRadius: '4px',
-              opacity: phaseName === 'strong' ? 1 : 0.2,
-              boxShadow: phaseName === 'strong' ? '0 0 12px #ff007f' : 'none',
-              transition: 'opacity 0.2s, box-shadow 0.2s',
-            }} />
-          </div>
-          
+      <Billboard position={[fanX, 2.2, 0]}>
+        <Html distanceFactor={11} transform>
           <div style={{
-            fontSize: '0.65rem',
-            fontWeight: 800,
-            color: 'rgba(255, 255, 255, 0.5)',
-            textTransform: 'uppercase',
-            letterSpacing: '1px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            background: 'rgba(15, 23, 42, 0.88)',
+            border: `2px solid ${uiColor}aa`,
+            borderRadius: '12px',
+            padding: '8px 12px',
+            boxShadow: `0 4px 20px rgba(0, 0, 0, 0.6), 0 0 10px ${uiColor}44`,
+            color: '#ffffff',
+            fontFamily: 'system-ui, sans-serif',
+            width: '110px',
+            userSelect: 'none',
+            pointerEvents: 'none',
+            textAlign: 'center',
           }}>
-            Wind Power
+            {/* Segmented Arc/Bar */}
+            <div style={{ display: 'flex', gap: '4px', width: '100%', height: '8px', marginBottom: '6px' }}>
+              <div style={{
+                flex: 1,
+                background: '#00e5ff',
+                borderRadius: '4px',
+                opacity: phaseName === 'weak' ? 1 : 0.2,
+                boxShadow: phaseName === 'weak' ? '0 0 12px #00e5ff' : 'none',
+                transition: 'opacity 0.2s, box-shadow 0.2s',
+              }} />
+              <div style={{
+                flex: 1,
+                background: '#ffd60a',
+                borderRadius: '4px',
+                opacity: phaseName === 'medium' ? 1 : 0.2,
+                boxShadow: phaseName === 'medium' ? '0 0 12px #ffd60a' : 'none',
+                transition: 'opacity 0.2s, box-shadow 0.2s',
+              }} />
+              <div style={{
+                flex: 1,
+                background: '#ff007f',
+                borderRadius: '4px',
+                opacity: phaseName === 'strong' ? 1 : 0.2,
+                boxShadow: phaseName === 'strong' ? '0 0 12px #ff007f' : 'none',
+                transition: 'opacity 0.2s, box-shadow 0.2s',
+              }} />
+            </div>
+            
+            <div style={{
+              fontSize: '0.65rem',
+              fontWeight: 800,
+              color: 'rgba(255, 255, 255, 0.5)',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+            }}>
+              Wind Power
+            </div>
+            <div style={{
+              fontSize: '0.9rem',
+              fontWeight: 900,
+              color: uiColor,
+              textShadow: `0 0 8px ${uiColor}`,
+              textTransform: 'uppercase',
+              marginTop: '2px',
+            }}>
+              {phaseName}
+            </div>
           </div>
-          <div style={{
-            fontSize: '0.9rem',
-            fontWeight: 900,
-            color: uiColor,
-            textShadow: `0 0 8px ${uiColor}`,
-            textTransform: 'uppercase',
-            marginTop: '2px',
-          }}>
-            {phaseName}
-          </div>
-        </div>
-      </Html>
+        </Html>
+      </Billboard>
 
       {/* 2. Premium Stylized Fan Blower body */}
       <group position={[fanX, 0.5, 0]} rotation={[0, 0, fanRot]}>
@@ -3030,6 +3032,260 @@ export const CannonSectionManager: React.FC<CannonSectionManagerProps> = ({ sens
           </mesh>
         </RigidBody>
       ))}
+    </group>
+  );
+};
+
+interface WallPusherProps {
+  position: [number, number, number];
+  faceDirection: 'left' | 'right';
+  extensionLength?: number;
+  interval?: number;
+  offset?: number;
+}
+
+export const WallPusher: React.FC<WallPusherProps> = ({
+  position,
+  faceDirection,
+  extensionLength = 3.2,
+  interval = 4.0,
+  offset = 0
+}) => {
+  const rbRef = useRef<RapierRigidBody>(null);
+  const pointsRef = useRef<THREE.Points>(null);
+  const lastPhaseRef = useRef<'retracted' | 'warning' | 'extending' | 'extended' | 'retracting'>('retracted');
+
+  const [phaseName, setPhaseName] = useState<'retracted' | 'warning' | 'extending' | 'extended' | 'retracting'>('retracted');
+
+  interface ParticleData {
+    pos: THREE.Vector3;
+    vel: THREE.Vector3;
+    type: 'spark' | 'dust';
+    life: number;
+    size: number;
+  }
+  const particlesRef = useRef<ParticleData[]>([]);
+
+  const triggerSparkBurst = (xOffset: number) => {
+    const pArr: ParticleData[] = [];
+    const pushFaceX = faceDirection === 'right' ? 1.4 : -1.4;
+
+    for (let i = 0; i < 25; i++) {
+      pArr.push({
+        pos: new THREE.Vector3(pushFaceX, (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 2.0),
+        vel: new THREE.Vector3(
+          (faceDirection === 'right' ? -1 : 1) * (Math.random() * 4.5 + 1.5),
+          Math.random() * 4.0 + 1.5,
+          (Math.random() - 0.5) * 5.0
+        ),
+        type: 'spark',
+        life: 1.0,
+        size: Math.random() * 0.16 + 0.08
+      });
+    }
+    for (let i = 0; i < 15; i++) {
+      pArr.push({
+        pos: new THREE.Vector3(pushFaceX, (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 2.0),
+        vel: new THREE.Vector3(
+          (faceDirection === 'right' ? 0.8 : -0.8) * Math.random(),
+          Math.random() * 1.5 + 0.5,
+          (Math.random() - 0.5) * 2.5
+        ),
+        type: 'dust',
+        life: 1.0,
+        size: Math.random() * 0.35 + 0.15
+      });
+    }
+    particlesRef.current = [...particlesRef.current, ...pArr].slice(0, 40);
+  };
+
+  useFrame((state, delta) => {
+    if (!rbRef.current) return;
+    
+    const elapsed = state.clock.getElapsedTime() + offset;
+    const t = elapsed % interval;
+
+    let extension = 0; // 0 to 1
+    let currentPhase: 'retracted' | 'warning' | 'extending' | 'extended' | 'retracting' = 'retracted';
+
+    if (t < 2.0) {
+      currentPhase = 'retracted';
+      extension = 0;
+    } else if (t < 3.0) {
+      currentPhase = 'warning';
+      extension = 0;
+    } else if (t < 3.25) {
+      currentPhase = 'extending';
+      const frac = (t - 3.0) / 0.25;
+      extension = frac;
+    } else if (t < 4.0) {
+      currentPhase = 'extended';
+      extension = 1.0;
+    } else {
+      currentPhase = 'retracting';
+      const frac = (t - 4.0) / 1.0;
+      extension = 1.0 - frac;
+    }
+
+    if (phaseName !== currentPhase) {
+      setPhaseName(currentPhase);
+    }
+
+    // Audio cue triggers
+    if (currentPhase !== lastPhaseRef.current) {
+      const prevPhase = lastPhaseRef.current;
+      lastPhaseRef.current = currentPhase;
+      
+      const player = state.scene.getObjectByName('player');
+      const isPlayerNear = player && player.position.distanceTo(new THREE.Vector3(...position)) < 8.0;
+
+      if (currentPhase === 'warning') {
+        if (isPlayerNear) audioManager.playWarningBeep();
+      } else if (currentPhase === 'extending') {
+        if (isPlayerNear) audioManager.playPusherExtend();
+      } else if (currentPhase === 'extended' && prevPhase === 'extending') {
+        if (isPlayerNear) {
+          audioManager.playMetalImpact();
+          useGameStore.getState().triggerCameraShake(0.65);
+        }
+        triggerSparkBurst(faceDirection === 'right' ? extensionLength : -extensionLength);
+      }
+    }
+
+    // Calculate current pusher X offset (vibrates slightly in warning phase)
+    let warningVibration = 0;
+    if (currentPhase === 'warning') {
+      warningVibration = Math.sin(state.clock.getElapsedTime() * 45) * 0.035;
+    }
+
+    const currentX = faceDirection === 'right'
+      ? position[0] + (extension * extensionLength) + warningVibration
+      : position[0] - (extension * extensionLength) - warningVibration;
+
+    rbRef.current.setNextKinematicTranslation({ x: currentX, y: position[1], z: position[2] });
+
+    // Update spark and dust particles
+    if (particlesRef.current.length > 0 && pointsRef.current) {
+      const geom = pointsRef.current.geometry;
+      const positions = geom.attributes.position.array as Float32Array;
+      const colors = geom.attributes.color.array as Float32Array;
+
+      positions.fill(999);
+
+      particlesRef.current.forEach((p, idx) => {
+        p.life -= delta * (p.type === 'spark' ? 2.2 : 1.1);
+        if (p.life > 0) {
+          if (p.type === 'spark') {
+            p.vel.y -= 9.81 * delta;
+          } else {
+            p.vel.multiplyScalar(0.95);
+            p.vel.y += 0.35 * delta;
+          }
+          p.pos.addScaledVector(p.vel, delta);
+
+          positions[idx * 3] = p.pos.x;
+          positions[idx * 3 + 1] = p.pos.y;
+          positions[idx * 3 + 2] = p.pos.z;
+
+          if (p.type === 'spark') {
+            colors[idx * 4] = 1.0;
+            colors[idx * 4 + 1] = 0.55;
+            colors[idx * 4 + 2] = 0.0;
+            colors[idx * 4 + 3] = p.life;
+          } else {
+            colors[idx * 4] = 0.55;
+            colors[idx * 4 + 1] = 0.52;
+            colors[idx * 4 + 2] = 0.5;
+            colors[idx * 4 + 3] = p.life * 0.45;
+          }
+        }
+      });
+
+      particlesRef.current = particlesRef.current.filter((p) => p.life > 0);
+      geom.attributes.position.needsUpdate = true;
+      geom.attributes.color.needsUpdate = true;
+    }
+  });
+
+  const glowColor = phaseName === 'warning'
+    ? (Math.floor(Date.now() / 150) % 2 === 0 ? '#ff0055' : '#1f1f2e')
+    : (phaseName === 'extending' || phaseName === 'extended' ? '#ffaa00' : '#00e5ff');
+
+  return (
+    <group>
+      {/* Fixed base mount/housing frame */}
+      <mesh castShadow receiveShadow position={[position[0] - (faceDirection === 'right' ? 0.6 : -0.6), position[1], position[2]]}>
+        <boxGeometry args={[1.2, 2.0, 2.4]} />
+        <meshStandardMaterial color="#2d3748" roughness={0.7} metalness={0.5} />
+      </mesh>
+
+      {/* Moving Pusher rod and plate */}
+      <RigidBody
+        ref={rbRef}
+        type="kinematicPosition"
+        colliders={false}
+        position={position}
+        friction={0.9}
+        restitution={0.1}
+        onCollisionEnter={(event) => {
+          const other = event.other.rigidBodyObject;
+          if (other && (other.name === 'player' || other.name === 'bot') && lastPhaseRef.current === 'extending') {
+            const otherBody = event.other.rigidBody;
+            if (otherBody) {
+              const currentVel = otherBody.linvel();
+              const pushDir = faceDirection === 'right' ? 1 : -1;
+              
+              otherBody.setLinvel({
+                x: pushDir * 18.0,
+                y: currentVel.y + 4.5,
+                z: currentVel.z
+              }, true);
+
+              if (other.name === 'player') {
+                audioManager.playMetalImpact();
+                useGameStore.getState().triggerCameraShake(0.85);
+              }
+              triggerSparkBurst(faceDirection === 'right' ? extensionLength : -extensionLength);
+            }
+          }
+        }}
+      >
+        <CuboidCollider args={[1.4, 0.8, 1.1]} />
+        <group>
+          {/* Main heavy pusher block */}
+          <mesh castShadow receiveShadow>
+            <boxGeometry args={[2.8, 1.6, 2.2]} />
+            <meshStandardMaterial color="#1a202c" roughness={0.4} metalness={0.8} />
+          </mesh>
+          
+          {/* Neon warning strip/plate face */}
+          <mesh position={[faceDirection === 'right' ? 1.41 : -1.41, 0, 0]}>
+            <boxGeometry args={[0.02, 1.4, 2.0]} />
+            <meshStandardMaterial color={glowColor} emissive={glowColor} emissiveIntensity={0.8} />
+          </mesh>
+
+          {/* Spark and dust particle points system */}
+          <points ref={pointsRef}>
+            <bufferGeometry>
+              <bufferAttribute
+                attach="attributes-position"
+                args={[new Float32Array(40 * 3), 3]}
+              />
+              <bufferAttribute
+                attach="attributes-color"
+                args={[new Float32Array(40 * 4), 4]}
+              />
+            </bufferGeometry>
+            <pointsMaterial
+              size={0.24}
+              vertexColors
+              transparent
+              blending={THREE.AdditiveBlending}
+              depthWrite={false}
+            />
+          </points>
+        </group>
+      </RigidBody>
     </group>
   );
 };

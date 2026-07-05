@@ -88,6 +88,8 @@ interface GameState {
   toggleDevShowDetails: () => void;
   toggleGodMode: () => void;
   splashes: Array<{ id: string; position: [number, number, number]; color: string }>;
+  gameDifficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  setGameDifficulty: (diff: 'EASY' | 'MEDIUM' | 'HARD') => void;
   isNitroActive: boolean;
   nitroCooldown: number;
   setNitroActive: (active: boolean) => void;
@@ -275,6 +277,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   toggleDevShowDetails: () => set((state) => ({ devShowDetails: !state.devShowDetails })),
   toggleGodMode: () => set((state) => ({ isGodMode: !state.isGodMode })),
   splashes: [],
+  gameDifficulty: 'MEDIUM',
+  setGameDifficulty: (diff) => set({ gameDifficulty: diff }),
   isNitroActive: false,
   nitroCooldown: 0,
   isPlayerSliding: false,
@@ -354,7 +358,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     const botNames = generateBotNames(11, get().playerName);
     const botColors = ['#ffd60a', '#39ff14', '#00e5ff', '#ff6700', '#bd00ff', '#ff0055', '#00ffc4', '#ff7da7', '#a8ff00', '#00ffc4', '#ff00ff'];
     const accessories = ['none', 'crown', 'party', 'glasses'];
-    const difficulties: ('EASY' | 'MEDIUM' | 'HARD')[] = ['EASY', 'MEDIUM', 'HARD', 'EASY', 'MEDIUM', 'MEDIUM', 'EASY', 'MEDIUM', 'HARD', 'MEDIUM', 'HARD'];
+    
+    const currentMode = get().gameDifficulty;
+    const difficulties: ('EASY' | 'MEDIUM' | 'HARD')[] = currentMode === 'EASY' 
+      ? ['EASY', 'EASY', 'MEDIUM', 'EASY', 'EASY', 'EASY', 'MEDIUM', 'EASY', 'EASY', 'MEDIUM', 'EASY']
+      : currentMode === 'HARD'
+      ? ['HARD', 'HARD', 'MEDIUM', 'HARD', 'HARD', 'HARD', 'MEDIUM', 'HARD', 'HARD', 'MEDIUM', 'HARD']
+      : ['EASY', 'MEDIUM', 'HARD', 'EASY', 'MEDIUM', 'MEDIUM', 'EASY', 'MEDIUM', 'HARD', 'MEDIUM', 'HARD'];
+
     const seededBots = Array.from({ length: 11 }, (_, i) => ({
       id: `bot_${i}`,
       name: botNames[i] || `Runner_${i}`,
@@ -736,7 +747,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     const botNames = generateBotNames(numBots, get().playerName);
     const botColors = ['#ffd60a', '#39ff14', '#00e5ff', '#ff6700', '#bd00ff', '#ff0055', '#00ffc4', '#ff7da7', '#a8ff00', '#00ffc4', '#ff00ff'];
     const accessories = ['none', 'crown', 'party', 'glasses'];
-    const difficulties: ('EASY' | 'MEDIUM' | 'HARD')[] = ['EASY', 'MEDIUM', 'HARD', 'EASY', 'MEDIUM', 'MEDIUM', 'EASY', 'MEDIUM', 'HARD', 'MEDIUM', 'HARD'];
+    
+    const currentMode = get().gameDifficulty;
+    const difficulties: ('EASY' | 'MEDIUM' | 'HARD')[] = currentMode === 'EASY' 
+      ? ['EASY', 'EASY', 'MEDIUM', 'EASY', 'EASY', 'EASY', 'MEDIUM', 'EASY', 'EASY', 'MEDIUM', 'EASY']
+      : currentMode === 'HARD'
+      ? ['HARD', 'HARD', 'MEDIUM', 'HARD', 'HARD', 'HARD', 'MEDIUM', 'HARD', 'HARD', 'MEDIUM', 'HARD']
+      : ['EASY', 'MEDIUM', 'HARD', 'EASY', 'MEDIUM', 'MEDIUM', 'EASY', 'MEDIUM', 'HARD', 'MEDIUM', 'HARD'];
+
     const seededBots = Array.from({ length: numBots }, (_, i) => ({
       id: `bot_${i}`,
       name: botNames[i] || `Runner_${i}`,

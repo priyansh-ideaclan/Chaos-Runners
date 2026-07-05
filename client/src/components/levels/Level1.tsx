@@ -32,7 +32,8 @@ import {
   CurvedSlide,
   StartLine,
   GoalLine,
-  CannonSectionManager
+  CannonSectionManager,
+  WallPusher
 } from '../LevelObstacles';
 import { useGameStore } from '../../store/useGameStore';
 import { getThemeConfig } from '../../utils/themeManager';
@@ -255,9 +256,9 @@ export const Level1: React.FC = () => {
       {/* Platform 1 (LM10): SEESAW — tilts left/right based on player X position
           axis='z' means rotation is around Z-axis (left-right tilt) */}
       <Seesaw
-        position={[-1.5, 0.25, 24.5]}
-        length={4.5}
-        width={3.5}
+        position={[-2.5, 0.25, 24.0]}
+        length={6.2}
+        width={4.2}
         thickness={0.3}
         axis="z"
         color="#00e5ff"
@@ -274,13 +275,17 @@ export const Level1: React.FC = () => {
       </RigidBody>
       <PatternWindmill position={[-7.5, 3.2, 22.0]} color="#ffd60a" />
 
+      {/* Wall Pushers at Landmarks 12 and 13 (Z = 27.0 and Z = 32.0) */}
+      <WallPusher position={[-9.75, 0.7, 27.0]} faceDirection="right" extensionLength={3.2} interval={4.0} offset={0} />
+      <WallPusher position={[-9.75, 0.7, 32.0]} faceDirection="right" extensionLength={3.2} interval={4.0} offset={2.0} />
+
       {/* Platform A (LM14): SEESAW — tilts front/back as player walks across
           axis='x' means rotation is around X-axis (front-back tilt)
           Longer plank bridges the Middle path gap — extra challenge */}
       <Seesaw
-        position={[1.5, 0.25, 28.2]}
-        length={5.0}
-        width={3.2}
+        position={[2.5, 0.25, 28.2]}
+        length={6.2}
+        width={4.2}
         thickness={0.28}
         axis="z"
         color="#ff9500"
@@ -288,19 +293,19 @@ export const Level1: React.FC = () => {
       />
 
       {/* Platform B: Moving X flat platform */}
-      <MovingPlatform position={[-1.2, 0.35, 31.8]} size={[4.0, 0.5, 4.0]} direction="x" range={1.2} speed={1.2} color="#ffd60a" />
+      <MovingPlatform position={[-1.2, 0.35, 33.8]} size={[4.0, 0.5, 4.0]} direction="x" range={1.2} speed={1.2} color="#ffd60a" />
 
       {/* Platform C: Fixed flat stone platform */}
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[2.0, 0.25, 2.0]} position={[1.2, 0.6, 35.4]} />
-        <mesh receiveShadow position={[1.2, 0.6, 35.4]}>
+        <CuboidCollider args={[2.0, 0.25, 2.0]} position={[1.2, 0.6, 37.6]} />
+        <mesh receiveShadow position={[1.2, 0.6, 37.6]}>
           <boxGeometry args={[4.0, 0.5, 4.0]} />
           <meshStandardMaterial color="#8b8589" roughness={0.8} />
         </mesh>
       </RigidBody>
 
       {/* Platform D: Moving Z flat platform */}
-      <MovingPlatform position={[-1.2, 0.85, 39.0]} size={[4.0, 0.5, 4.0]} direction="z" range={0.8} speed={1.0} color="#ff2a85" />
+      <MovingPlatform position={[-1.2, 0.85, 41.4]} size={[4.0, 0.5, 4.0]} direction="z" range={0.8} speed={1.0} color="#ff2a85" />
 
       {/* ── RIGHT PATHWAY (HARD / SHORT) ── */}
       <MovingPlatform position={[7.5, 0.1, 22.5]} size={[4.0, 0.5, 4.0]} direction="y" range={0.8} speed={1.5} color="#ffd60a" />
@@ -338,8 +343,8 @@ export const Level1: React.FC = () => {
       <HorizontalWindBlower position={[0.0, 1.0, 42.5]} size={[14.0, 2.0, 2.5]} baseForce={34.0} direction="left" color="#00e5ff" />
 
       {/* Dual Large Jump Pads side-by-side! Launches players high into sky storey platform */}
-      <JumpPad position={[-2.2, 1.05, 47.0]} boostForce={24.0} color="#00e5ff" scale={1.6} />
-      <JumpPad position={[2.2, 1.05, 47.0]} boostForce={24.0} color="#00e5ff" scale={1.6} />
+      <JumpPad position={[-2.2, 1.05, 47.0]} boostForce={24.0} boostZ={8.5} color="#00e5ff" scale={1.6} />
+      <JumpPad position={[2.2, 1.05, 47.0]} boostForce={24.0} boostZ={8.5} color="#00e5ff" scale={1.6} />
       
       {/* Horizontal Wind Blower at Jump Pad launch (Landmark 22) */}
       <HorizontalWindBlower position={[0.0, 1.4, 46.5]} size={[14.0, 2.0, 2.5]} baseForce={34.0} direction="right" color="#ff007f" />
