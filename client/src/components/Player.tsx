@@ -718,6 +718,7 @@ export const Player: React.FC = () => {
       type={isGodMode ? 'kinematicPosition' : (phase === 'MENU' ? 'fixed' : 'dynamic')}
       friction={0.6}
       restitution={0.1}
+      ccd={true}
       onCollisionEnter={(event) => {
         if (isGodMode) return;
         const other = event.other.rigidBodyObject;

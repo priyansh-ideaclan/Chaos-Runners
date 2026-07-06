@@ -417,7 +417,8 @@ export const Level1: React.FC = () => {
       {/* ── SPINNING HAMMER ARENA (LM27–29) — One large merged platform ── */}
       {/* Wide open arena: 18m × 10m, spanning Z = 65.6 to 75.6, centered at Z = 70.6 */}
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[9.0, 0.4, 5.0]} position={[0, 8.7, 70.6]} />
+        {/* Thick collider (half-height 2.5) keeps top surface at Y=9.1 while preventing player tunneling */}
+        <CuboidCollider args={[9.0, 2.5, 5.0]} position={[0, 6.6, 70.6]} />
         <mesh receiveShadow position={[0, 8.7, 70.6]}>
           <boxGeometry args={[18.0, 0.8, 10.0]} />
           <meshStandardMaterial color="#7b2fff" roughness={0.35} metalness={0.18} />
@@ -438,27 +439,28 @@ export const Level1: React.FC = () => {
       ))}
 
       {/* ── HAMMER 1 — Slow CW (above head — safe to run under) ── */}
-      <SpinningHammer position={[0, 9.5, 67.0]} speed={-1.3} armLength={2.4}
+      {/* All hammers raised to Y=9.1 (platform top surface) so they sit ON the platform, not inside it */}
+      <SpinningHammer position={[0, 9.1, 67.0]} speed={-1.3} armLength={2.4}
         color="#ff2d6f" armColor="#ffe033" mountingHeight={1.62} />
 
       {/* ── HAMMER 2 — Medium CW (jumpable height) — left lane ── */}
-      <SpinningHammer position={[-4.5, 9.5, 69.0]} speed={-1.8} armLength={2.2}
+      <SpinningHammer position={[-4.5, 9.1, 69.0]} speed={-1.8} armLength={2.2}
         color="#00c9ff" armColor="#ffe033" mountingHeight={1.15} />
 
       {/* ── HAMMER 3 — Medium CCW (body level — must dodge sideways or jump precisely) — right lane ── */}
-      <SpinningHammer position={[4.5, 9.5, 69.0]} speed={2.2} armLength={2.2}
+      <SpinningHammer position={[4.5, 9.1, 69.0]} speed={2.2} armLength={2.2}
         color="#ff6b00" armColor="#ffe033" mountingHeight={0.78} />
 
       {/* ── HAMMER 4 — Fast CCW (jumpable height) — center lane ── */}
-      <SpinningHammer position={[0, 9.5, 71.5]} speed={2.8} armLength={2.4}
+      <SpinningHammer position={[0, 9.1, 71.5]} speed={2.8} armLength={2.4}
         color="#ff2d6f" armColor="#ffe033" mountingHeight={1.1} />
 
       {/* ── HAMMER 5 — Variable speed CCW (body level — must time or dodge sideways) — far left ── */}
-      <SpinningHammer position={[-4.5, 9.5, 73.8]} speed={2.4} armLength={2.0}
+      <SpinningHammer position={[-4.5, 9.1, 73.8]} speed={2.4} armLength={2.0}
         color="#a855f7" armColor="#ffe033" variable mountingHeight={0.78} />
 
       {/* ── HAMMER 6 — Fast CW (above head — safe to run under) — far right ── */}
-      <SpinningHammer position={[4.5, 9.5, 73.8]} speed={-2.6} armLength={2.0}
+      <SpinningHammer position={[4.5, 9.1, 73.8]} speed={-2.6} armLength={2.0}
         color="#00c9ff" armColor="#ffe033" mountingHeight={1.62} />
 
       {/* Checkpoint 3 merge deck — immediately after hammer arena exit (Z=75.6), ending exactly at Z=77.0 where slides start */}
