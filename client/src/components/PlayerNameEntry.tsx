@@ -255,6 +255,36 @@ export const PlayerNameEntry: React.FC = () => {
         >
           3–15 characters · Letters and numbers · Your name is saved locally
         </p>
+
+        {/* Dev Mode info based on current input */}
+        <div
+          style={{
+            marginTop: '12px',
+            padding: '8px 14px',
+            borderRadius: '10px',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            transition: 'all 0.25s ease',
+            ...(input.trim() === 'Super Tester'
+              ? {
+                  background: 'rgba(0,229,255,0.08)',
+                  border: '1px solid rgba(0,229,255,0.25)',
+                  color: 'var(--secondary)',
+                  textShadow: '0 0 8px rgba(0,229,255,0.3)',
+                }
+              : {
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  color: 'rgba(255,255,255,0.3)',
+                }),
+          }}
+        >
+          {input.trim() === 'Super Tester' ? (
+            <>🛠️ Dev mode is unlocked for Super Tester!</>
+          ) : (
+            <>ℹ️ Developer mode is restricted to user <strong style={{ color: 'rgba(255,255,255,0.45)' }}>Super Tester</strong></>
+          )}
+        </div>
       </div>
 
       {/* CSS animations */}

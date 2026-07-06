@@ -332,9 +332,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     const trimmed = name.trim();
     localStorage.setItem('chaorunners_player_name', trimmed);
     const isSuperTester = trimmed === 'Super Tester';
+    // Auto-enable dev mode for Super Tester; reset all dev flags for everyone else
+    if (isSuperTester) {
+      localStorage.setItem('chaorunners_dev_mode_enabled', 'true');
+    }
     set({
       playerName: trimmed,
-      devModeEnabled: isSuperTester ? get().devModeEnabled : false,
+      devModeEnabled: isSuperTester ? true : false,
       isGodMode: isSuperTester ? get().isGodMode : false,
       showDebugCheckpoints: isSuperTester ? get().showDebugCheckpoints : false,
     });
