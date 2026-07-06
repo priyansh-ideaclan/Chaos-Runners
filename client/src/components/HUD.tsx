@@ -65,6 +65,7 @@ export const HUD: React.FC = () => {
     cinematicActive,
     setCinematicActive,
     showDebugCheckpoints,
+    devModeEnabled,
     devLandmarkIndex,
     devLandmarkDistance,
     devShowDetails,
@@ -124,12 +125,15 @@ export const HUD: React.FC = () => {
       } else if (e.key === 'm' || e.key === 'M') {
         useMusicStore.getState().setEnableMusic(!useMusicStore.getState().enableMusic);
       } else if (e.key === 'o' || e.key === 'O' || e.key === 'F8') {
-        useGameStore.getState().toggleDebugCheckpoints();
+        if (playerName === 'Super Tester' && devModeEnabled) {
+          useGameStore.getState().toggleDebugCheckpoints();
+        }
       } else if (e.key === 'F9') {
-        useGameStore.getState().toggleDevShowDetails();
+        if (playerName === 'Super Tester' && devModeEnabled) {
+          useGameStore.getState().toggleDevShowDetails();
+        }
       } else if (e.key === 'F10') {
-        const isDevMode = import.meta.env.DEV;
-        if (isDevMode) {
+        if (playerName === 'Super Tester' && devModeEnabled) {
           useGameStore.getState().toggleGodMode();
         }
       }
@@ -137,7 +141,7 @@ export const HUD: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [phase]);
+  }, [phase, playerName, devModeEnabled]);
 
   // Tick the stopwatch/timer if playing
   useEffect(() => {
@@ -853,66 +857,67 @@ export const HUD: React.FC = () => {
             </div>
           </div>
           
-          <button 
-            className="ui-interactive btn-secondary" 
-            tabIndex={-1}
-            style={{ 
-              pointerEvents: 'all', 
-              padding: '10px 16px', 
-              fontSize: '0.9rem', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px', 
-              fontWeight: 800,
-              borderColor: showDebugCheckpoints ? 'var(--secondary)' : 'var(--glass-border)',
-              background: showDebugCheckpoints ? 'rgba(0, 229, 255, 0.15)' : 'var(--glass-bg)'
-            }} 
-            onClick={() => useGameStore.getState().toggleDebugCheckpoints()}
-          >
-            <Eye size={14} /> {showDebugCheckpoints ? 'Hide Dev Landmarks' : 'Show Dev Landmarks (O)'}
-          </button>
+          {playerName === 'Super Tester' && devModeEnabled && (
+            <>
+              <button 
+                className="ui-interactive btn-secondary" 
+                tabIndex={-1}
+                style={{ 
+                  pointerEvents: 'all', 
+                  padding: '10px 16px', 
+                  fontSize: '0.9rem', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  fontWeight: 800,
+                  borderColor: showDebugCheckpoints ? 'var(--secondary)' : 'var(--glass-border)',
+                  background: showDebugCheckpoints ? 'rgba(0, 229, 255, 0.15)' : 'var(--glass-bg)'
+                }} 
+                onClick={() => useGameStore.getState().toggleDebugCheckpoints()}
+              >
+                <Eye size={14} /> {showDebugCheckpoints ? 'Hide Dev Landmarks' : 'Show Dev Landmarks (O)'}
+              </button>
 
-          {import.meta.env.DEV && (
-            <button 
-              className="ui-interactive btn-secondary" 
-              tabIndex={-1}
-              style={{ 
-                pointerEvents: 'all', 
-                padding: '10px 16px', 
-                fontSize: '0.9rem', 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '6px', 
-                fontWeight: 800,
-                borderColor: isGodMode ? '#ff007f' : 'var(--glass-border)',
-                background: isGodMode ? 'rgba(255, 0, 127, 0.15)' : 'var(--glass-bg)'
-              }} 
-              onClick={() => useGameStore.getState().toggleGodMode()}
-            >
-              <Sparkles size={14} /> {isGodMode ? 'Disable God Mode' : 'Enable God Mode (F10)'}
-            </button>
+              <button 
+                className="ui-interactive btn-secondary" 
+                tabIndex={-1}
+                style={{ 
+                  pointerEvents: 'all', 
+                  padding: '10px 16px', 
+                  fontSize: '0.9rem', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  fontWeight: 800,
+                  borderColor: isGodMode ? '#ff007f' : 'var(--glass-border)',
+                  background: isGodMode ? 'rgba(255, 0, 127, 0.15)' : 'var(--glass-bg)'
+                }} 
+                onClick={() => useGameStore.getState().toggleGodMode()}
+              >
+                <Sparkles size={14} /> {isGodMode ? 'Disable God Mode' : 'Enable God Mode (F10)'}
+              </button>
+
+              <button
+                className="ui-interactive btn-secondary"
+                tabIndex={-1}
+                style={{
+                  pointerEvents: 'all',
+                  padding: '10px 16px',
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontWeight: 800,
+                  borderColor: botsEnabled ? 'var(--glass-border)' : '#ff6b00',
+                  background: botsEnabled ? 'var(--glass-bg)' : 'rgba(255, 107, 0, 0.15)',
+                }}
+                onClick={() => useGameStore.getState().toggleBots()}
+              >
+                {botsEnabled ? <Users size={14} /> : <UserX size={14} />}
+                {botsEnabled ? 'Disable Bots' : 'Enable Bots'}
+              </button>
+            </>
           )}
-
-          {/* Bots Toggle — always visible in the dev toolbar */}
-          <button
-            className="ui-interactive btn-secondary"
-            tabIndex={-1}
-            style={{
-              pointerEvents: 'all',
-              padding: '10px 16px',
-              fontSize: '0.9rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontWeight: 800,
-              borderColor: botsEnabled ? 'var(--glass-border)' : '#ff6b00',
-              background: botsEnabled ? 'var(--glass-bg)' : 'rgba(255, 107, 0, 0.15)',
-            }}
-            onClick={() => useGameStore.getState().toggleBots()}
-          >
-            {botsEnabled ? <Users size={14} /> : <UserX size={14} />}
-            {botsEnabled ? 'Disable Bots' : 'Enable Bots'}
-          </button>
 
           <button className="ui-interactive btn-secondary" tabIndex={-1} style={{ pointerEvents: 'all', padding: '10px 16px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800 }} onClick={resetTournament}>
             <Home size={14} /> Leave Match

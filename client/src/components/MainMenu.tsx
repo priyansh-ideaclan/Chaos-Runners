@@ -54,6 +54,8 @@ export const MainMenu: React.FC = () => {
     setUnlockAllLevels,
     gameDifficulty,
     setGameDifficulty,
+    devModeEnabled,
+    setDevModeEnabled,
   } = useGameStore();
 
   // Start background music loop on main lobby entry (only after player has entered their name)
@@ -127,6 +129,16 @@ export const MainMenu: React.FC = () => {
               change
             </button>
           </div>
+          {/* Dev Mode mention on start menu */}
+          <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.45)', margin: '4px 0 12px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {playerName === 'Super Tester' ? (
+              <span style={{ color: 'var(--secondary)', fontWeight: 700, textShadow: '0 0 8px rgba(0, 229, 255, 0.3)' }}>
+                🛠️ Dev mode is unlocked for Super Tester!
+              </span>
+            ) : (
+              <span>ℹ️ Dev mode is only available for user 'Super Tester'</span>
+            )}
+          </div>
           <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem', margin: '0 0 16px 0' }}>
             Race. Survive. Outlast. Conquer handcrafted courses, spinning arenas, and disappearing hex platforms against competitive AI bots!
           </p>
@@ -138,18 +150,35 @@ export const MainMenu: React.FC = () => {
             <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', fontWeight: 800 }}>
               Select Round
             </span>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, color: unlockAllLevels ? '#ffd60a' : 'rgba(255,255,255,0.5)', transition: 'color 0.2s' }}>
-              <input
-                type="checkbox"
-                checked={unlockAllLevels}
-                onChange={(e) => {
-                  setUnlockAllLevels(e.target.checked);
-                  audioManager.playClick();
-                }}
-                style={{ cursor: 'pointer', margin: 0, accentColor: '#ffd60a' }}
-              />
-              🔓 Unlock All Rounds
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, color: unlockAllLevels ? '#ffd60a' : 'rgba(255,255,255,0.5)', transition: 'color 0.2s' }}>
+                <input
+                  type="checkbox"
+                  checked={unlockAllLevels}
+                  onChange={(e) => {
+                    setUnlockAllLevels(e.target.checked);
+                    audioManager.playClick();
+                  }}
+                  style={{ cursor: 'pointer', margin: 0, accentColor: '#ffd60a' }}
+                />
+                🔓 Unlock All Rounds
+              </label>
+
+              {playerName === 'Super Tester' && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, color: devModeEnabled ? 'var(--secondary)' : 'rgba(255,255,255,0.5)', transition: 'color 0.2s' }}>
+                  <input
+                    type="checkbox"
+                    checked={devModeEnabled}
+                    onChange={(e) => {
+                      setDevModeEnabled(e.target.checked);
+                      audioManager.playClick();
+                    }}
+                    style={{ cursor: 'pointer', margin: 0, accentColor: 'var(--secondary)' }}
+                  />
+                  🛠️ Enable Dev Mode
+                </label>
+              )}
+            </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {LEVEL_NAMES.map((name, idx) => {

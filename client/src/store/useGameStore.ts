@@ -111,6 +111,8 @@ interface GameState {
   weatherMuted: boolean;
   uiMuted: boolean;
   showDebugCheckpoints: boolean;
+  devModeEnabled: boolean;
+  setDevModeEnabled: (enabled: boolean) => void;
   devLandmarkIndex: number;
   devLandmarkDistance: number;
   devShowDetails: boolean;
@@ -302,6 +304,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   weatherMuted: getStoredBoolean('chaorunners_mute_weather', false),
   uiMuted: getStoredBoolean('chaorunners_mute_ui', false),
   showDebugCheckpoints: false,
+  devModeEnabled: getStoredBoolean('chaorunners_dev_mode_enabled', false),
+  setDevModeEnabled: (enabled) => {
+    localStorage.setItem('chaorunners_dev_mode_enabled', String(enabled));
+    set({ devModeEnabled: enabled });
+  },
   botsEnabled: getStoredBoolean('chaorunners_bots_enabled', true),
   devLandmarkIndex: -1,
   devLandmarkDistance: 0,
@@ -324,7 +331,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   setPlayerName: (name) => {
     const trimmed = name.trim();
     localStorage.setItem('chaorunners_player_name', trimmed);
-    set({ playerName: trimmed });
+    const isSuperTester = trimmed === 'Super Tester';
+    set({
+      playerName: trimmed,
+      devModeEnabled: isSuperTester ? get().devModeEnabled : false,
+      isGodMode: isSuperTester ? get().isGodMode : false,
+      showDebugCheckpoints: isSuperTester ? get().showDebugCheckpoints : false,
+    });
   },
   toggleDebugCheckpoints: () => set((state) => ({ showDebugCheckpoints: !state.showDebugCheckpoints })),
   toggleBots: () => set((state) => {
