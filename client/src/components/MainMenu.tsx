@@ -59,9 +59,15 @@ export const MainMenu: React.FC = () => {
   } = useGameStore();
 
   // Start background music loop on main lobby entry (only after player has entered their name)
+  // Also sync volumes from game store → music store so the musicManager always reflects saved settings
   useEffect(() => {
     if (phase === 'MENU' && playerName !== '') {
       audioManager.startMusic();
+      // Sync the game store's saved audio preferences into useMusicStore on every menu entry
+      const ms = useMusicStore.getState();
+      if (ms.masterVolume !== masterVolume) ms.setMasterVolume(masterVolume);
+      if (ms.musicVolume !== musicVolume) ms.setMusicVolume(musicVolume);
+      if (ms.enableMusic === musicMuted) ms.setEnableMusic(!musicMuted);
     }
   }, [phase, playerName]);
 
@@ -77,10 +83,23 @@ export const MainMenu: React.FC = () => {
   const handleVolumeChange = (type: 'master' | 'music' | 'sfx' | 'weather' | 'ui', val: number) => {
     setVolume(type, val);
     if (type === 'master') {
+      // Sync to both stores: audioManager reads game store, musicManager reads music store
       useMusicStore.getState().setMasterVolume(val);
     }
+    if (type === 'music') {
+      // musicManager subscribes to useMusicStore, not useGameStore
+      useMusicStore.getState().setMusicVolume(val);
+    }
     if (type === 'sfx') {
-      audioManager.playClick(); // Play a test click to test volume
+      audioManager.playClick(); // Play a test click to preview the SFX volume
+    }
+  };
+
+  const handleToggleMute = (type: 'music' | 'sfx' | 'weather' | 'ui') => {
+    toggleMute(type);
+    if (type === 'music') {
+      // musicManager only watches useMusicStore.enableMusic, not gameStore.musicMuted
+      useMusicStore.getState().setEnableMusic(musicMuted); // musicMuted is current state before toggle, so !musicMuted is next state
     }
   };
 
@@ -377,7 +396,7 @@ export const MainMenu: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
                 <span>Music Volume</span>
                 <button
-                  onClick={() => toggleMute('music')}
+                  onClick={() => handleToggleMute('music')}
                   style={{ background: 'none', border: 'none', color: 'var(--secondary)', fontSize: '0.7rem', cursor: 'pointer', padding: 0 }}
                 >
                   {musicMuted ? 'Unmute BGM 🔇' : 'Mute BGM 🔊'}
