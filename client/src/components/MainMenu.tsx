@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { audioManager } from '../utils/audioManager';
 import { Sparkles, Play, Volume2, VolumeX, Unlock, Lock } from 'lucide-react';
 import { useMusicStore } from '../store/useMusicStore';
+import { Canvas, useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
 
 const LEVEL_NAMES = [
   'Round 1 - Jungle Sprint 🏁',
@@ -29,6 +31,126 @@ const ACCESSORIES = [
   { id: 'ears', name: 'Kitty Ears' },
   { id: 'horns', name: 'Demon Horns' },
 ];
+
+const PreviewModel: React.FC<{ color: string; accessory: string }> = ({ color, accessory }) => {
+  const groupRef = useRef<THREE.Group>(null);
+
+  // Slowly rotate the model for preview
+  useFrame((state) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y = state.clock.getElapsedTime() * 1.5;
+    }
+  });
+
+  return (
+    <group ref={groupRef} position={[0, -0.15, 0]} scale={[0.82, 0.82, 0.82]}>
+      {/* Capsule Body */}
+      <mesh castShadow receiveShadow>
+        <capsuleGeometry args={[0.3, 0.5, 10, 20]} />
+        <meshStandardMaterial color={color} roughness={0.2} metalness={0.1} />
+      </mesh>
+
+      {/* Face Mask */}
+      <group position={[0, 0.2, 0.22]} scale={[1, 0.75, 1]}>
+        <mesh castShadow>
+          <sphereGeometry args={[0.16, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          <meshStandardMaterial color="#ffffff" roughness={0.1} metalness={0.2} />
+        </mesh>
+        <mesh position={[-0.06, 0.04, 0.15]}>
+          <sphereGeometry args={[0.025, 8, 8]} />
+          <meshBasicMaterial color="#000000" />
+        </mesh>
+        <mesh position={[0.06, 0.04, 0.15]}>
+          <sphereGeometry args={[0.025, 8, 8]} />
+          <meshBasicMaterial color="#000000" />
+        </mesh>
+      </group>
+
+      {/* Arms */}
+      <group position={[-0.34, 0.08, 0]}>
+        <mesh castShadow><capsuleGeometry args={[0.06, 0.15, 8, 8]} /><meshStandardMaterial color={color} roughness={0.2} /></mesh>
+      </group>
+      <group position={[0.34, 0.08, 0]}>
+        <mesh castShadow><capsuleGeometry args={[0.06, 0.15, 8, 8]} /><meshStandardMaterial color={color} roughness={0.2} /></mesh>
+      </group>
+
+      {/* Legs */}
+      <group position={[-0.15, -0.48, 0]}>
+        <mesh castShadow><capsuleGeometry args={[0.075, 0.12, 8, 8]} /><meshStandardMaterial color={color} roughness={0.2} /></mesh>
+      </group>
+      <group position={[0.15, -0.48, 0]}>
+        <mesh castShadow><capsuleGeometry args={[0.075, 0.12, 8, 8]} /><meshStandardMaterial color={color} roughness={0.2} /></mesh>
+      </group>
+
+      {/* Accessories */}
+      {accessory === 'crown' && (
+        <group position={[0, 0.54, 0]}>
+          <mesh castShadow><cylinderGeometry args={[0.16, 0.14, 0.11, 12]} /><meshStandardMaterial color="#ffd700" metalness={0.8} roughness={0.2} /></mesh>
+          <mesh position={[0, 0.07, 0]} castShadow><coneGeometry args={[0.16, 0.09, 12, 1, true]} /><meshStandardMaterial color="#ffd700" metalness={0.8} roughness={0.2} /></mesh>
+        </group>
+      )}
+      {accessory === 'party' && (
+        <mesh position={[0, 0.6, 0.04]} rotation={[-0.2, 0, 0]} castShadow>
+          <coneGeometry args={[0.12, 0.26, 12]} />
+          <meshStandardMaterial color="#ff00a0" roughness={0.4} />
+        </mesh>
+      )}
+      {accessory === 'glasses' && (
+        <group position={[0, 0.22, 0.36]}>
+          <mesh castShadow><boxGeometry args={[0.27, 0.045, 0.03]} /><meshStandardMaterial color="#000000" roughness={0.1} /></mesh>
+          <mesh position={[-0.06, -0.015, 0.01]} castShadow><boxGeometry args={[0.09, 0.06, 0.015]} /><meshStandardMaterial color="#00e5ff" metalness={0.9} roughness={0.0} transparent opacity={0.8} /></mesh>
+          <mesh position={[0.06, -0.015, 0.01]} castShadow><boxGeometry args={[0.09, 0.06, 0.015]} /><meshStandardMaterial color="#00e5ff" metalness={0.9} roughness={0.0} transparent opacity={0.8} /></mesh>
+        </group>
+      )}
+      {accessory === 'halo' && (
+        <mesh position={[0, 0.72, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.165, 0.018, 8, 24]} />
+          <meshStandardMaterial color="#ffff55" emissive="#ffff55" emissiveIntensity={1.2} roughness={0.1} />
+        </mesh>
+      )}
+      {accessory === 'tophat' && (
+        <group position={[0, 0.54, 0]}>
+          <mesh position={[0, 0.015, 0]} castShadow>
+            <cylinderGeometry args={[0.22, 0.22, 0.015, 16]} />
+            <meshStandardMaterial color="#1a1a1a" roughness={0.75} />
+          </mesh>
+          <mesh position={[0, 0.15, 0]} castShadow>
+            <cylinderGeometry args={[0.15, 0.15, 0.26, 16]} />
+            <meshStandardMaterial color="#1a1a1a" roughness={0.75} />
+          </mesh>
+          <mesh position={[0, 0.038, 0]}>
+            <cylinderGeometry args={[0.153, 0.153, 0.038, 16]} />
+            <meshStandardMaterial color="#ff0000" roughness={0.4} />
+          </mesh>
+        </group>
+      )}
+      {accessory === 'ears' && (
+        <group>
+          <mesh position={[-0.14, 0.56, 0]} rotation={[0, 0, 0.35]} castShadow>
+            <coneGeometry args={[0.075, 0.18, 4]} />
+            <meshStandardMaterial color={color} roughness={0.3} />
+          </mesh>
+          <mesh position={[0.14, 0.56, 0]} rotation={[0, 0, -0.35]} castShadow>
+            <coneGeometry args={[0.075, 0.18, 4]} />
+            <meshStandardMaterial color={color} roughness={0.3} />
+          </mesh>
+        </group>
+      )}
+      {accessory === 'horns' && (
+        <group>
+          <mesh position={[-0.11, 0.49, 0.11]} rotation={[-0.2, 0, 0.4]} castShadow>
+            <coneGeometry args={[0.052, 0.16, 10]} />
+            <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} roughness={0.3} />
+          </mesh>
+          <mesh position={[0.11, 0.49, 0.11]} rotation={[-0.2, 0, -0.4]} castShadow>
+            <coneGeometry args={[0.052, 0.16, 10]} />
+            <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} roughness={0.3} />
+          </mesh>
+        </group>
+      )}
+    </group>
+  );
+};
 
 export const MainMenu: React.FC = () => {
   const {
@@ -318,50 +440,77 @@ export const MainMenu: React.FC = () => {
             Custom Appearance
           </h3>
 
-          <div style={{ marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-              Body Skin Color
-            </span>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px' }}>
-              {COLORS.map((c) => (
-                <button
-                  key={c.value}
-                  onClick={() => { updateCustomization({ color: c.value }); audioManager.playClick(); }}
-                  style={{
-                    backgroundColor: c.value,
-                    height: '28px',
-                    borderRadius: '6px',
-                    border: customization.color === c.value ? '2px solid white' : '1px solid rgba(0,0,0,0.3)',
-                    cursor: 'pointer',
-                    transform: customization.color === c.value ? 'scale(1.08)' : 'none',
-                  }}
-                  title={c.name}
-                />
-              ))}
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            {/* Left: 3D Character Preview Canvas */}
+            <div style={{ 
+              width: '120px', 
+              height: '185px', 
+              borderRadius: '8px', 
+              overflow: 'hidden', 
+              background: 'rgba(0,0,0,0.22)', 
+              border: '1px solid var(--glass-border)', 
+              position: 'relative',
+              boxShadow: 'inset 0 0 10px rgba(0,229,255,0.1)'
+            }}>
+              <Canvas camera={{ position: [0, 0.12, 1.45], fov: 42 }}>
+                <ambientLight intensity={1.1} color="#ffffff" />
+                <directionalLight position={[5, 10, 5]} intensity={1.5} color="#ffffff" />
+                <PreviewModel color={customization.color} accessory={customization.accessory} />
+              </Canvas>
             </div>
-          </div>
 
-          <div>
-            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-              Accessory
-            </span>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-              {ACCESSORIES.map((acc) => (
-                <button
-                  key={acc.id}
-                  onClick={() => { updateCustomization({ accessory: acc.id }); audioManager.playClick(); }}
-                  className="btn-secondary"
-                  style={{
-                    padding: '6px 8px',
-                    fontSize: '0.75rem',
-                    textAlign: 'center',
-                    borderColor: customization.accessory === acc.id ? 'var(--secondary)' : 'var(--glass-border)',
-                    background: customization.accessory === acc.id ? 'rgba(0, 229, 255, 0.08)' : 'var(--glass-bg)',
-                  }}
-                >
-                  {acc.name}
-                </button>
-              ))}
+            {/* Right: Selectors */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                  Body Skin Color
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                  {COLORS.map((c) => (
+                    <button
+                      key={c.value}
+                      onClick={() => { updateCustomization({ color: c.value }); audioManager.playClick(); }}
+                      style={{
+                        backgroundColor: c.value,
+                        height: '28px',
+                        borderRadius: '6px',
+                        border: customization.color === c.value ? '2px solid white' : '1px solid rgba(0,0,0,0.3)',
+                        cursor: 'pointer',
+                        transform: customization.color === c.value ? 'scale(1.08)' : 'none',
+                        transition: 'transform 0.15s ease, border-color 0.15s ease',
+                      }}
+                      title={c.name}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                  Accessory
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                  {ACCESSORIES.map((acc) => (
+                    <button
+                      key={acc.id}
+                      onClick={() => { updateCustomization({ accessory: acc.id }); audioManager.playClick(); }}
+                      className="btn-secondary"
+                      style={{
+                        padding: '5px 4px',
+                        fontSize: '0.7rem',
+                        textAlign: 'center',
+                        borderColor: customization.accessory === acc.id ? 'var(--secondary)' : 'var(--glass-border)',
+                        background: customization.accessory === acc.id ? 'rgba(0, 229, 255, 0.08)' : 'var(--glass-bg)',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {acc.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
